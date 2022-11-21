@@ -58,8 +58,8 @@ function App() {
     x0: 0, y0: 0,
     x: constant.MARGIN,
     y: constant.MARGIN,
-    w: document.documentElement.clientWidth - constant.SIZE,
-    h: document.documentElement.clientHeight - constant.SIZE
+    w: document.documentElement.clientWidth - constant.SIZE - constant.MARGIN,
+    h: document.documentElement.clientHeight - constant.SIZE - constant.MARGIN,
   });
   const updateStatus = useCallback(async () => {
     if (status === constant.S_LOADING) {
@@ -68,40 +68,44 @@ function App() {
       window.open('http://localhost:8097/admin/home/rule2-manage', '_blank')
     } else if (status === constant.S_MATCHED) {
       setStatus(constant.S_SYNCING)
-      await fetch('http://127.0.0.1:8097/v2/admin/rule/' + rule_id, {
+      const resp = await fetch('http://127.0.0.1:8097/v2/admin/rule/' + rule_id, {
         method: "PATCH",
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ origin: window.location.href })
       });
+      console.log(resp.status, resp.body)
     } else if (status === constant.S_SYNCING) {
-      // TODO: 同步中只能停止
+      console.log('syncing')
     } else if (status === constant.S_SUCCESS) {
-      // TODO:  retry
       console.log('retry')
     } else if (status === constant.S_FAIL) {
-      matchCrawler()
+      matchCrawler(window.location.href)
     }
   });
-  const matchCrawler = useCallback(async () => {
+  const matchCrawler = useCallback(async (uri) => {
     setLoading(true)
-    let url = window.location.host === 'www.youtube.com' ? 'https://www.youtube.com/watch?v=' + new URL(window.location.href).searchParams.get('v') : window.location.href;
-    const resp = await fetch('http://127.0.0.1:8097/v1/public/crawler?origin=' + encodeURIComponent(url), { method: "GET", headers: { 'Content-Type': 'application/json' } });
-    if (resp.status === 404) {
-      return console.log(404)
-    }
-    const data = await resp.json();
-    console.log(data, 'rule')
-    if (data.code === 0) {
-      setStatus(constant.S_SUCCESS);
-    } else if (data.code === -1) {
-      setStatus(constant.S_FAIL);
-    } else if (data.code === 11) {
-      setStatus(constant.S_NOMATCH)
-    } else if (data.code === 12) {
-      rule_id = data.data.id;
-      setStatus(constant.S_MATCHED);
-    } else if (data.code === 13) {
-      setStatus(constant.S_SYNCING)
+    try {
+      let url = window.location.host === 'www.youtube.com' ? 'https://www.youtube.com/watch?v=' + new URL(uri).searchParams.get('v') : uri;
+      const resp = await fetch('http://127.0.0.1:8097/v1/public/crawler?origin=' + encodeURIComponent(url), { method: "GET", headers: { 'Content-Type': 'application/json' } });
+      if (resp.status === 404) {
+        return console.log(404)
+      }
+      const data = await resp.json();
+      console.log(data, 'rule')
+      if (data.code === 0) {
+        setStatus(constant.S_SUCCESS);
+      } else if (data.code === -1) {
+        setStatus(constant.S_FAIL);
+      } else if (data.code === 11) {
+        setStatus(constant.S_NOMATCH)
+      } else if (data.code === 12) {
+        rule_id = data.data.id;
+        setStatus(constant.S_MATCHED);
+      } else if (data.code === 13) {
+        setStatus(constant.S_SYNCING)
+      }
+    } catch (e) {
+      setStatus(constant.S_FAIL)
     }
     setLoading(false)
   }, [])
@@ -109,8 +113,8 @@ function App() {
   useEffect(() => {
     // resize 位置不变
     window.addEventListener('resize', _.debounce(() => {
-      data.w = document.documentElement.clientWidth - constant.SIZE
-      data.h = document.documentElement.clientHeight - constant.SIZE
+      data.w = document.documentElement.clientWidth - constant.SIZE - constant.MARGIN
+      data.h = document.documentElement.clientHeight - constant.SIZE - constant.MARGIN
       data.x = data.w - r;
       if (boxRef.current) {
         const style = `transform: translate(${Math.max(constant.MARGIN, data.x)}px, ${Math.max(constant.MARGIN, data.y)}px);`;
@@ -119,9 +123,28 @@ function App() {
     }, 200))
   })
   useEffectOnce(() => {
-    // TODO: pushState 事件处理
     if (!booted) {
+      var _wr = function (type) {
+        var orig = window.history[type];
+        return function () {
+          var e = new Event(type);
+          e.arguments = arguments;
+          window.dispatchEvent(e);
+          // 注意事件监听在url变更方法调用之前 也就是在事件监听的回调函数中获取的页面链接为跳转前的链接
+          var rv = orig.apply(this, arguments);
+          return rv;
+        };
+      };
+      window.history.pushState = _wr('pushState');
+      window.addEventListener('pushState', function (e) {
+        var path = e && e.arguments.length > 2 && e.arguments[2];
+        var url = /^http/.test(path) ? path : (window.location.protocol + '//' + window.location.host + path);
+        console.log('old:' + window.location.href, 'new:' + url);
+        matchCrawler(url);
+      });
+
       event.on('crawler', function (d) {
+        console.log(d, 'ws')
         setStatus(constant.S_SUCCESS)
       })
       booted = true
@@ -138,7 +161,7 @@ function App() {
       data.x = data.w - r;
       setData(data);
       if (!whilte_hosts.includes(window.location.host) || window !== window.parent) {
-        matchCrawler().then(() => {
+        matchCrawler(window.location.href).then(() => {
           setInited(1);
         })
       }
@@ -149,7 +172,7 @@ function App() {
     inited ?
       <Draggable
         defaultPosition={{ x: data.x, y: data.y }}
-        bounds={{ left: constant.MARGIN, top: constant.MARGIN, right: data.w - constant.MARGIN, bottom: data.h }}
+        bounds={{ left: constant.MARGIN, top: constant.MARGIN, right: data.w, bottom: data.h }}
         position={{ x: data.x, y: data.y }}
         handle='.drag-handler'
         onStart={(e) => {
