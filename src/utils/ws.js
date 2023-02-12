@@ -1,6 +1,6 @@
 import io from 'socket.io-client';
 
-const ws = io('http://localhost:8097', {
+const ws = io('https://192.168.0.124', {
   path: '/ws',
   reconnectionAttempts: 3
 });

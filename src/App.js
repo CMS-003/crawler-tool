@@ -15,7 +15,7 @@ if (ws) {
   })
 }
 
-const whilte_hosts = ['localhost', '127.0.0.1'];
+const whilte_hosts = ['localhost', '127.0.0.1', '192.168.0.124'];
 
 let rule_id = '';
 let r = constant.MARGIN;
@@ -65,15 +65,14 @@ function App() {
     if (status === constant.S_LOADING) {
       // 请求中不处理点击事件
     } else if (status === constant.S_NOMATCH) {
-      window.open('http://192.168.0.124:8097/admin/home/rule2-manage', '_blank')
+      window.open('http://192.168.0.124/admin/home/rule2-manage', '_blank')
     } else if (status === constant.S_MATCHED) {
       setStatus(constant.S_SYNCING)
-      const resp = await fetch('http://192.168.0.124:8097/v2/admin/rule/' + rule_id, {
+      const resp = await fetch('https://192.168.0.124/gw/admin/v2/admin/rule/' + rule_id, {
         method: "PATCH",
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ origin: window.location.href })
       });
-      console.log(resp.status, resp.body)
     } else if (status === constant.S_SYNCING) {
       console.log('syncing')
     } else if (status === constant.S_SUCCESS) {
@@ -86,7 +85,7 @@ function App() {
     setLoading(true)
     try {
       let url = window.location.host === 'www.youtube.com' ? 'https://www.youtube.com/watch?v=' + new URL(uri).searchParams.get('v') : uri;
-      const resp = await fetch('http://192.168.0.124:8097/v1/public/crawler?origin=' + encodeURIComponent(url), { method: "GET", headers: { 'Content-Type': 'application/json' } });
+      const resp = await fetch('https://192.168.0.124/gw/admin/v1/public/crawler?origin=' + encodeURIComponent(url), { method: "GET", headers: { 'Content-Type': 'application/json' } });
       if (resp.status === 404) {
         return console.log(404)
       }
@@ -144,8 +143,13 @@ function App() {
       });
 
       event.on('crawler', function (d) {
-        console.log(d, 'ws')
-        setStatus(constant.S_SUCCESS)
+        if (d.status === 'success') {
+          setStatus(constant.S_SUCCESS)
+        } else if (d.status === 'fail') {
+          setStatus(constant.S_FAIL)
+        } else {
+          console.log(d, 'crawler error')
+        }
       })
       booted = true
       const d = localStorage.getItem('position')
