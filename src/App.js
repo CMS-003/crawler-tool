@@ -65,10 +65,10 @@ function App() {
     if (status === constant.S_LOADING) {
       // 请求中不处理点击事件
     } else if (status === constant.S_NOMATCH) {
-      window.open('http://localhost:8097/admin/home/rule2-manage', '_blank')
+      window.open('http://192.168.0.124:8097/admin/home/rule2-manage', '_blank')
     } else if (status === constant.S_MATCHED) {
       setStatus(constant.S_SYNCING)
-      const resp = await fetch('http://127.0.0.1:8097/v2/admin/rule/' + rule_id, {
+      const resp = await fetch('http://192.168.0.124:8097/v2/admin/rule/' + rule_id, {
         method: "PATCH",
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ origin: window.location.href })
@@ -86,7 +86,7 @@ function App() {
     setLoading(true)
     try {
       let url = window.location.host === 'www.youtube.com' ? 'https://www.youtube.com/watch?v=' + new URL(uri).searchParams.get('v') : uri;
-      const resp = await fetch('http://127.0.0.1:8097/v1/public/crawler?origin=' + encodeURIComponent(url), { method: "GET", headers: { 'Content-Type': 'application/json' } });
+      const resp = await fetch('http://192.168.0.124:8097/v1/public/crawler?origin=' + encodeURIComponent(url), { method: "GET", headers: { 'Content-Type': 'application/json' } });
       if (resp.status === 404) {
         return console.log(404)
       }
