@@ -71,7 +71,7 @@ function App() {
       const resp = await fetch('https://192.168.0.124/gw/admin/v2/admin/rule/' + rule_id, {
         method: "PATCH",
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ origin: window.location.href })
+        body: JSON.stringify({ origin: window.location.href, extra: window.__extra || '' })
       });
     } else if (status === constant.S_SYNCING) {
       console.log('syncing')
