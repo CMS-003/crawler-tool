@@ -1,5 +1,6 @@
 import './App.css';
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState, Fragment } from 'react'
+import { useLocation, useNavigate, Routes, Route, BrowserRouter } from 'react-router-dom'
 import { useEffectOnce } from 'react-use'
 import Draggable from 'react-draggable';
 import _ from 'lodash'
@@ -15,16 +16,17 @@ if (ws) {
   })
 }
 
-const whilte_hosts = ['localhost', '127.0.0.1', 'localhost'];
+const whilte_hosts = ['localhost', '127.0.0.1', '192.168.0.124'];
 
 let rule_id = '';
 let r = constant.MARGIN;
 let booted = false;
+let old_uri = '';
 
 // 2/3 同一个图，但3会旋转
 function SVG({ status }) {
   if (status === constant.S_LOADING) {
-    return <svg t="1668678519444" className="icon" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" p-id="8890" xlink="http://www.w3.org/1999/xlink" width="200" height="200"><path d="M512 85.333333c235.648 0 426.666667 191.018667 426.666667 426.666667s-191.018667 426.666667-426.666667 426.666667S85.333333 747.648 85.333333 512 276.352 85.333333 512 85.333333z m0 128a298.666667 298.666667 0 1 0 0 597.333334 298.666667 298.666667 0 0 0 0-597.333334z" fill="#000000" fill-opacity=".05" p-id="8891"></path><path d="M813.696 813.696c166.613333-166.613333 166.613333-436.778667 0-603.392-166.613333-166.613333-436.778667-166.613333-603.392 0A64 64 0 0 0 300.8 300.8a298.666667 298.666667 0 1 1 422.4 422.4 64 64 0 0 0 90.496 90.496z" fill="#000000" p-id="8892"></path></svg>;
+    return <svg t="1668678519444" className="icon" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" p-id="8890" xlink="http://www.w3.org/1999/xlink" width="200" height="200"><path d="M512 85.333333c235.648 0 426.666667 191.018667 426.666667 426.666667s-191.018667 426.666667-426.666667 426.666667S85.333333 747.648 85.333333 512 276.352 85.333333 512 85.333333z m0 128a298.666667 298.666667 0 1 0 0 597.333334 298.666667 298.666667 0 0 0 0-597.333334z" fill="#000000" fillOpacity=".05" p-id="8891"></path><path d="M813.696 813.696c166.613333-166.613333 166.613333-436.778667 0-603.392-166.613333-166.613333-436.778667-166.613333-603.392 0A64 64 0 0 0 300.8 300.8a298.666667 298.666667 0 1 1 422.4 422.4 64 64 0 0 0 90.496 90.496z" fill="#000000" p-id="8892"></path></svg>;
   } else if (status === constant.S_NOMATCH) {
     return <svg t="1668675516561" className="icon" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" p-id="2437" xlink="http://www.w3.org/1999/xlink" width="200" height="200"><path d="M828.704099 196.575729C744.096116 112.384034 631.648434 66.016073 512 66.016073s-232.1288 46.367961-316.736783 130.559656C110.624271 280.800108 64 392.831501 64 512c0 119.199462 46.624271 231.199892 131.232254 315.424271 84.607983 84.191695 197.088348 130.559656 316.736783 130.559656s232.1288-46.367961 316.704099-130.559656c84.67163-84.255342 131.295901-196.288456 131.263217-315.455235C959.967316 392.800538 913.375729 280.800108 828.704099 196.575729zM736.00086 544.00086 544.00086 544.00086l0 192c0 17.695686-14.336138 32.00086-32.00086 32.00086s-32.00086-14.303454-32.00086-32.00086L479.99914 544.00086 288.00086 544.00086c-17.664722 0-32.00086-14.336138-32.00086-32.00086s14.336138-32.00086 32.00086-32.00086l192 0L480.00086 288.00086c0-17.664722 14.336138-32.00086 32.00086-32.00086s32.00086 14.336138 32.00086 32.00086l0 192 192 0c17.695686 0 32.00086 14.336138 32.00086 32.00086S753.696546 544.00086 736.00086 544.00086z" p-id="2438"></path></svg>
   } else if (status === constant.S_MATCHED) {
@@ -45,6 +47,7 @@ function Tool({ status, loading }) {
 }
 
 function App() {
+  const location = useLocation();
   const boxRef = useRef(null)
   // 解决初始化位置的问题
   const [inited, setInited] = useState(0)
@@ -65,10 +68,10 @@ function App() {
     if (status === constant.S_LOADING) {
       // 请求中不处理点击事件
     } else if (status === constant.S_NOMATCH) {
-      window.open('http://localhost/admin/home/rule2-manage', '_blank')
+      window.open('https://192.168.0.124/admin/home/rule2-manage', '_blank')
     } else if (status === constant.S_MATCHED) {
       setStatus(constant.S_SYNCING)
-      const resp = await fetch('http://localhost/gw/admin/v2/admin/rule/' + rule_id, {
+      const resp = await fetch('https://192.168.0.124/gw/admin/v2/admin/rule/' + rule_id, {
         method: "PATCH",
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ origin: window.location.href, extra: window.__extra || '' })
@@ -78,14 +81,25 @@ function App() {
     } else if (status === constant.S_SUCCESS) {
       console.log('retry')
     } else if (status === constant.S_FAIL) {
-      matchCrawler(window.location.href)
+      matchCrawler(window.location.origin + window.location.pathname)
     }
   });
-  const matchCrawler = useCallback(async (uri) => {
+  const matchCrawler = useCallback(async () => {
+    const new_uri = window.location.origin + window.location.pathname;
+    console.log('new:' + new_uri, 'old:' + old_uri);
+    setInited(1);
+    if (old_uri === new_uri) {
+      setTimeout(() => {
+        matchCrawler()
+      }, 2000);
+      return;
+    } else {
+      old_uri = new_uri;
+    }
     setLoading(true)
     try {
-      let url = window.location.host === 'www.youtube.com' ? 'https://www.youtube.com/watch?v=' + new URL(uri).searchParams.get('v') : uri;
-      const resp = await fetch('http://localhost/gw/admin/v1/public/crawler?origin=' + encodeURIComponent(url), { method: "GET", headers: { 'Content-Type': 'application/json' } });
+      let url = window.location.host === 'www.youtube.com' ? 'https://www.youtube.com/watch?v=' + new URL(new_uri).searchParams.get('v') : new_uri;
+      const resp = await fetch('https://192.168.0.124/gw/admin/v1/public/crawler?origin=' + encodeURIComponent(url), { method: "GET", headers: { 'Content-Type': 'application/json' } });
       if (resp.status === 404) {
         return console.log(404)
       }
@@ -105,43 +119,41 @@ function App() {
       }
     } catch (e) {
       setStatus(constant.S_FAIL)
+    } finally {
+      setLoading(false)
+      setTimeout(() => {
+        matchCrawler()
+      }, 500);
     }
-    setLoading(false)
-  }, [])
-
-  useEffect(() => {
-    // resize 位置不变
-    window.addEventListener('resize', _.debounce(() => {
-      data.w = document.documentElement.clientWidth - constant.SIZE - constant.MARGIN
-      data.h = document.documentElement.clientHeight - constant.SIZE - constant.MARGIN
-      data.x = data.w - r;
-      if (boxRef.current) {
-        const style = `transform: translate(${Math.max(constant.MARGIN, data.x)}px, ${Math.max(constant.MARGIN, data.y)}px);`;
-        boxRef.current.style = style
-      }
-    }, 200))
   })
-  useEffectOnce(() => {
-    if (!booted) {
-      var _wr = function (type) {
-        var orig = window.history[type];
-        return function () {
-          var e = new Event(type);
-          e.arguments = arguments;
-          window.dispatchEvent(e);
-          // 注意事件监听在url变更方法调用之前 也就是在事件监听的回调函数中获取的页面链接为跳转前的链接
-          var rv = orig.apply(this, arguments);
-          return rv;
-        };
-      };
-      window.history.pushState = _wr('pushState');
-      window.addEventListener('pushState', function (e) {
-        var path = e && e.arguments.length > 2 && e.arguments[2];
-        var url = /^http/.test(path) ? path : (window.location.protocol + '//' + window.location.host + path);
-        console.log('old:' + window.location.href, 'new:' + url);
-        matchCrawler(url);
-      });
 
+  useEffectOnce(() => {
+    console.log(location.pathname, 'history change')
+    if (!whilte_hosts.includes(window.location.host) || window !== window.parent) {
+      matchCrawler()
+    }
+    if (!booted) {
+      const source = new EventSource('http://localhost:8097/sse', { withCredentials: false });
+      source.onmessage = function (e) {
+        try {
+          const data = JSON.parse(e.data);
+          if (data.name === 'crawled' && data.url === window.location.origin + window.location.pathname) {
+            setStatus(data.extra.status);
+          }
+        } catch (e) {
+          console.log(e);
+        }
+      }
+      // resize 位置不变
+      window.addEventListener('resize', _.debounce(() => {
+        data.w = document.documentElement.clientWidth - constant.SIZE - constant.MARGIN
+        data.h = document.documentElement.clientHeight - constant.SIZE - constant.MARGIN
+        data.x = data.w - r;
+        if (boxRef.current) {
+          const style = `transform: translate(${Math.max(constant.MARGIN, data.x)}px, ${Math.max(constant.MARGIN, data.y)}px);`;
+          boxRef.current.style = style
+        }
+      }, 200))
       event.on('crawler', function (d) {
         if (d.status === 'success') {
           setStatus(constant.S_SUCCESS)
@@ -164,14 +176,8 @@ function App() {
       }
       data.x = data.w - r;
       setData(data);
-      if (!whilte_hosts.includes(window.location.host) || window !== window.parent) {
-        matchCrawler(window.location.href).then(() => {
-          setInited(1);
-        })
-      }
     }
   }, []);
-
   return (
     inited ?
       <Draggable
@@ -209,8 +215,17 @@ function App() {
         <div className="crawler-tool drag-handler" ref={ref => boxRef.current = ref}>
           <Tool status={status} loading={loading} key={data.x} />
         </div>
-      </Draggable> : null
-  );
+      </Draggable> : null)
 }
 
-export default App;
+export default function Index() {
+
+  return (
+    <BrowserRouter>
+      <Routes>
+        <Route path="*" element={<App />}>
+        </Route>
+      </Routes>
+    </BrowserRouter>
+  );
+} 
