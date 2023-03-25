@@ -1,4 +1,5 @@
 const constant = {
+  BASE_URL: 'https://192.168.0.124',
   // 边界间距
   MARGIN: 15,
   // 本身尺寸大小

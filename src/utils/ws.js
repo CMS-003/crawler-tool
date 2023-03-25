@@ -1,6 +1,7 @@
 import io from 'socket.io-client';
+import constant from '../constant'
 
-const ws = io('http://localhost', {
+const ws = io(constant.BASE_URL, {
   path: '/ws',
   reconnectionAttempts: 3
 });

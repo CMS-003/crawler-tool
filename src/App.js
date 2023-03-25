@@ -68,10 +68,10 @@ function App() {
     if (status === constant.S_LOADING) {
       // 请求中不处理点击事件
     } else if (status === constant.S_NOMATCH) {
-      window.open('https://192.168.0.124/admin/home/rule2-manage', '_blank')
+      window.open(constant.BASE_URL + '/admin/home/rule2-manage', '_blank')
     } else if (status === constant.S_MATCHED) {
       setStatus(constant.S_SYNCING)
-      const resp = await fetch('https://192.168.0.124/gw/admin/v2/admin/rule/' + rule_id, {
+      const resp = await fetch(constant.BASE_URL + '/gw/admin/v2/admin/rule/' + rule_id, {
         method: "PATCH",
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ origin: window.location.href, extra: window.__extra || '' })
@@ -99,7 +99,7 @@ function App() {
     setLoading(true)
     try {
       let url = window.location.host === 'www.youtube.com' ? 'https://www.youtube.com/watch?v=' + new URL(new_uri).searchParams.get('v') : new_uri;
-      const resp = await fetch('https://192.168.0.124/gw/admin/v1/public/crawler?origin=' + encodeURIComponent(url), { method: "GET", headers: { 'Content-Type': 'application/json' } });
+      const resp = await fetch(constant.BASE_URL + '/gw/admin/v1/public/crawler?origin=' + encodeURIComponent(url), { method: "GET", headers: { 'Content-Type': 'application/json' } });
       if (resp.status === 404) {
         return console.log(404)
       }
@@ -133,15 +133,15 @@ function App() {
       matchCrawler()
     }
     if (!booted) {
-      const source = new EventSource('http://localhost:8097/sse', { withCredentials: false });
+      const source = new EventSource(constant.BASE_URL + '/sse', { withCredentials: false });
       source.onmessage = function (e) {
         try {
           const data = JSON.parse(e.data);
           if (data.name === 'crawled' && data.url === window.location.origin + window.location.pathname) {
             setStatus(data.extra.status);
           }
-        } catch (e) {
-          console.log(e);
+        } catch (err) {
+          console.log(err);
         }
       }
       // resize 位置不变
