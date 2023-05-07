@@ -81,7 +81,7 @@ function App() {
     } else if (status === constant.S_SUCCESS) {
       console.log('retry')
     } else if (status === constant.S_FAIL) {
-      matchCrawler(window.location.origin + window.location.pathname)
+      matchCrawler()
     }
   });
   const matchCrawler = useCallback(async () => {
@@ -91,14 +91,14 @@ function App() {
     if (old_uri === new_uri) {
       setTimeout(() => {
         matchCrawler()
-      }, 2000);
+      }, 500);
       return;
     } else {
       old_uri = new_uri;
     }
     setLoading(true)
     try {
-      let url = window.location.host === 'www.youtube.com' ? 'https://www.youtube.com/watch?v=' + new URL(new_uri).searchParams.get('v') : new_uri;
+      let url = window.location.host === 'www.youtube.com' ? 'https://www.youtube.com/watch?v=' + new URL(window.location.href).searchParams.get('v') : new_uri;
       const resp = await fetch(constant.BASE_URL + '/gw/admin/v1/public/crawler?origin=' + encodeURIComponent(url), { method: "GET", headers: { 'Content-Type': 'application/json' } });
       if (resp.status === 404) {
         return console.log(404)
@@ -136,6 +136,7 @@ function App() {
       const source = new EventSource(constant.BASE_URL + '/sse', { withCredentials: false });
       source.onmessage = function (e) {
         try {
+          console.log(e.data, 'sse')
           const data = JSON.parse(e.data);
           if (data.name === 'crawled' && data.url === window.location.origin + window.location.pathname) {
             setStatus(data.extra.status);
