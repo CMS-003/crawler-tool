@@ -17,6 +17,7 @@ if (ws) {
 }
 
 const whilte_hosts = ['localhost', '127.0.0.1', '192.168.0.124'];
+const withHTML = ['https://jable.tv', 'https://pixiv.net']
 
 let rule_id = '';
 let r = constant.MARGIN;
@@ -71,10 +72,11 @@ function App() {
       window.open(constant.BASE_URL + '/admin/home/rule2-manage', '_blank')
     } else if (status === constant.S_MATCHED) {
       setStatus(constant.S_SYNCING)
+      const html = withHTML.includes(window.location.origin) ? document.documentElement.innerHTML : ''
       const resp = await fetch(constant.BASE_URL + '/gw/admin/v2/admin/rule/' + rule_id, {
         method: "PATCH",
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ origin: window.location.href, extra: window.__extra || '' })
+        body: JSON.stringify({ origin: window.location.href, extra: window.__extra || '', html })
       });
     } else if (status === constant.S_SYNCING) {
       console.log('syncing')
@@ -128,8 +130,11 @@ function App() {
   })
 
   useEffectOnce(() => {
-    console.log(location.pathname, 'history change')
+    // console.log(location.pathname, 'history change')
     if (!whilte_hosts.includes(window.location.host) || window !== window.parent) {
+      const script = document.createElement('script');
+      script.src = constant.BASE_URL + "/test/script"
+      document.body.append(script);
       matchCrawler()
     }
     if (!booted) {
