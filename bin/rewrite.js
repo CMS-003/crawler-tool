@@ -1,6 +1,4 @@
 const fs = require('fs');
-const path = require('path');
-
 const root = process.cwd();
 
 const manifest = JSON.parse(fs.readFileSync(root + '/public/manifest.json', 'utf-8'));
@@ -13,12 +11,12 @@ manifest.content_scripts = [
       "https://*/*"
     ],
     "js": [
-      asset.files["main.js"]
+      asset.files["main.js"],
     ],
     "css": [
       asset.files["main.css"]
     ],
-    "run_at": "document_end"
+    "run_at": "document_start"
   }
 ];
 

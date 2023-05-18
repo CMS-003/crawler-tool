@@ -1,6 +1,6 @@
 import './App.css';
-import { useCallback, useEffect, useRef, useState, Fragment } from 'react'
-import { useLocation, useNavigate, Routes, Route, BrowserRouter } from 'react-router-dom'
+import { useCallback, useRef, useState } from 'react'
+import { useLocation, Routes, Route, BrowserRouter } from 'react-router-dom'
 import { useEffectOnce } from 'react-use'
 import Draggable from 'react-draggable';
 import _ from 'lodash'
@@ -21,7 +21,6 @@ const whilte_hosts = ['localhost', '127.0.0.1', '192.168.0.124'];
 let rule_id = '';
 let r = constant.MARGIN;
 let booted = false;
-let old_uri = '';
 
 // 2/3 同一个图，但3会旋转
 function SVG({ status }) {
@@ -84,66 +83,49 @@ function App() {
       matchCrawler()
     }
   });
-  const matchCrawler = useCallback(async () => {
-    const new_uri = window.location.origin + window.location.pathname;
-    console.log('new:' + new_uri, 'old:' + old_uri);
-    setInited(1);
-    if (old_uri === new_uri) {
-      setTimeout(() => {
-        matchCrawler()
-      }, 500);
-      return;
-    } else {
-      old_uri = new_uri;
-    }
+  const matchCrawler = useCallback(async (url) => {
     setLoading(true)
     try {
-      let url = window.location.host === 'www.youtube.com' ? 'https://www.youtube.com/watch?v=' + new URL(window.location.href).searchParams.get('v') : new_uri;
-      const resp = await fetch(constant.BASE_URL + '/gw/admin/v1/public/crawler?origin=' + encodeURIComponent(url), { method: "GET", headers: { 'Content-Type': 'application/json' } });
-      if (resp.status === 404) {
-        return console.log(404)
+      const resp = await fetch(constant.BASE_URL + '/rules/detect?origin=' + encodeURIComponent(url), { method: "POST", headers: { 'Content-Type': 'application/json' } });
+      if (!resp || resp.status === 404) {
+        return setStatus(constant.S_FAIL);
       }
       const data = await resp.json();
       console.log(data, 'rule')
-      if (data.code === 0) {
-        setStatus(constant.S_SUCCESS);
-      } else if (data.code === -1) {
-        setStatus(constant.S_FAIL);
-      } else if (data.code === 11) {
+      if (data.code === 1000) {
         setStatus(constant.S_NOMATCH)
-      } else if (data.code === 12) {
+      } else if (data.code === 1001) {
         rule_id = data.data.id;
         setStatus(constant.S_MATCHED);
-      } else if (data.code === 13) {
+      } else if (data.code === 1002) {
+        setStatus(constant.S_SUCCESS);
+      } else if (data.code === 1003) {
         setStatus(constant.S_SYNCING)
+      } else if (data.code === 1004) {
+        setStatus(constant.S_FAIL);
       }
     } catch (e) {
       setStatus(constant.S_FAIL)
     } finally {
       setLoading(false)
-      setTimeout(() => {
-        matchCrawler()
-      }, 500);
     }
   })
 
   useEffectOnce(() => {
-    console.log(location.pathname, 'history change')
     if (!whilte_hosts.includes(window.location.host) || window !== window.parent) {
       matchCrawler()
     }
     if (!booted) {
-      const source = new EventSource(constant.BASE_URL + '/sse', { withCredentials: false });
-      source.onmessage = function (e) {
-        try {
-          console.log(e.data, 'sse')
-          const data = JSON.parse(e.data);
-          if (data.name === 'crawled' && data.url === window.location.origin + window.location.pathname) {
-            setStatus(data.extra.status);
-          }
-        } catch (err) {
-          console.log(err);
+      try {
+        if (chrome) {
+          chrome.runtime.onMessage.addListener(function (request, sender, sendReponse) {
+            if (request.type === 'url') {
+              matchCrawler(request.url);
+            }
+          });
         }
+      } catch (e) {
+        // no throw
       }
       // resize 位置不变
       window.addEventListener('resize', _.debounce(() => {

@@ -1,0 +1,11 @@
+{
+  "globals": {
+    "chrome": true
+  },
+  "rules": {
+  },
+  "parserOptions": {
+    "ecmaVersion": 2015, // 或者更高版本
+    "sourceType": "module"
+  }
+}
