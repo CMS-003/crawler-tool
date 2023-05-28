@@ -2,6 +2,26 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 import App from './App';
 
+document.ready = function (callback) {
+  ///兼容FF,Google
+  if (document.addEventListener) {
+    document.addEventListener('DOMContentLoaded', function () {
+      callback();
+    }, false)
+  }
+  //兼容IE
+  else if (document.attachEvent) {
+    document.attachEvent('onreadystatechange', function () {
+      if (document.readyState == "complete") {
+        callback();
+      }
+    })
+  }
+  else if (document.lastChild == document.body) {
+    callback();
+  }
+}
+
 const appended = document.querySelector('#door')
 if (!appended) {
   const door = document.createElement('div');

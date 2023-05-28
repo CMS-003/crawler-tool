@@ -17,7 +17,7 @@ if (ws) {
 }
 
 const whilte_hosts = ['localhost', '127.0.0.1', '192.168.0.124'];
-const withHTML = ['https://jable.tv', 'https://pixiv.net']
+let withHTML = ['https://jable.tv', 'https://pixiv.net', 'https://hanime1.me']
 
 let rule_id = '';
 let r = constant.MARGIN;
@@ -87,20 +87,11 @@ function App() {
     }
   });
   const matchCrawler = useCallback(async () => {
-    const new_uri = window.location.origin + window.location.pathname;
-    console.log('new:' + new_uri, 'old:' + old_uri);
     setInited(1);
-    if (old_uri === new_uri) {
-      setTimeout(() => {
-        matchCrawler()
-      }, 500);
-      return;
-    } else {
-      old_uri = new_uri;
-    }
     setLoading(true)
     try {
-      let url = window.location.host === 'www.youtube.com' ? 'https://www.youtube.com/watch?v=' + new URL(window.location.href).searchParams.get('v') : new_uri;
+      let url = window.location.href;
+      console.log(url, 'pattern')
       const resp = await fetch(constant.BASE_URL + '/gw/admin/v1/public/crawler?origin=' + encodeURIComponent(url), { method: "GET", headers: { 'Content-Type': 'application/json' } });
       if (resp.status === 404) {
         return console.log(404)
@@ -123,19 +114,14 @@ function App() {
       setStatus(constant.S_FAIL)
     } finally {
       setLoading(false)
-      setTimeout(() => {
-        matchCrawler()
-      }, 500);
     }
   })
 
   useEffectOnce(() => {
-    // console.log(location.pathname, 'history change')
     if (!whilte_hosts.includes(window.location.host) || window !== window.parent) {
-      const script = document.createElement('script');
-      script.src = constant.BASE_URL + "/test/script"
-      document.body.append(script);
       matchCrawler()
+    } else {
+      booted = true
     }
     if (!booted) {
       const source = new EventSource(constant.BASE_URL + '/sse', { withCredentials: false });
@@ -149,6 +135,18 @@ function App() {
         } catch (err) {
           console.log(err);
         }
+      }
+      try {
+        if (chrome) {
+          chrome.runtime.onMessage.addListener(function (request, sender, sendReponse) {
+            if (request.type === 'url') {
+              matchCrawler(request.url);
+            }
+          });
+        }
+      } catch (e) {
+        console.log(e, 'chrome url change')
+        // no throw
       }
       // resize 位置不变
       window.addEventListener('resize', _.debounce(() => {
