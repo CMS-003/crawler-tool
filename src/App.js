@@ -73,7 +73,7 @@ function App() {
       window.open(constant.BASE_URL + '/admin/home/rule2-manage', '_blank')
     } else if (status === constant.S_MATCHED) {
       setStatus(constant.S_SYNCING)
-      const resp = await fetch(constant.BASE_URL + '/gw/admin/v2/admin/spider/' + rule_id, {
+      const resp = await fetch(constant.BASE_URL + '/gw/admin/v1/admin/spider/' + rule_id, {
         method: "PATCH",
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ url: window.location.href, extra: window.__extra || '', html: from === 'browser' ? document.documentElement.innerHTML : '' })
