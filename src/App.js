@@ -99,19 +99,18 @@ function App() {
       if (resp.status === 404) {
         return console.log(404)
       }
-      const data = await resp.json();
-      setFrom(_.get(data, 'data.rule.config.from', 'url'))
-      console.log(from, data);
-      if (data.code === 1002) {
+      const body = await resp.json();
+      setFrom(_.get(body, 'data.rule.config.from', 'url'))
+      if (body.code === 1002) {
         setStatus(constant.S_SUCCESS);
-      } else if (data.code === -1 || data.code === 1004) {
+      } else if (body.code === -1 || body.code === 1004) {
         setStatus(constant.S_FAIL);
-      } else if (data.code === 1000) {
+      } else if (body.code === 1000) {
         setStatus(constant.S_NOMATCH)
-      } else if (data.code === 1001) {
-        rule_id = data.rule._id;
+      } else if (body.code === 1001) {
+        rule_id = body.data.rule._id;
         setStatus(constant.S_MATCHED);
-      } else if (data.code === 1003) {
+      } else if (body.code === 1003) {
         setStatus(constant.S_SYNCING)
       }
     } catch (e) {
