@@ -17,7 +17,7 @@ if (ws) {
 }
 
 const whilte_hosts = ['localhost', '127.0.0.1', '192.168.0.124'];
-let withHTML = ['https://jable.tv', 'https://pixiv.net', 'https://hanime1.me']
+let withHTML = ['https://jable.tv', 'https://hanime1.me']
 
 let rule_id = '';
 let r = constant.MARGIN;
@@ -58,6 +58,7 @@ function App() {
   const [status, setStatus] = useState(constant.S_LOADING);
   // 请求中判断
   const [loading, setLoading] = useState(true);
+  const [from, setFrom] = useState('url');
   const [data, setData] = useState({
     x0: 0, y0: 0,
     x: constant.MARGIN,
@@ -72,11 +73,10 @@ function App() {
       window.open(constant.BASE_URL + '/admin/home/rule2-manage', '_blank')
     } else if (status === constant.S_MATCHED) {
       setStatus(constant.S_SYNCING)
-      const html = withHTML.includes(window.location.origin) ? document.documentElement.innerHTML : ''
-      const resp = await fetch(constant.BASE_URL + '/gw/admin/v2/admin/rule/' + rule_id, {
+      const resp = await fetch(constant.BASE_URL + '/gw/admin/v2/admin/spider/' + rule_id, {
         method: "PATCH",
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ origin: window.location.href, extra: window.__extra || '', html })
+        body: JSON.stringify({ url: window.location.href, extra: window.__extra || '', html: from === 'browser' ? document.documentElement.innerHTML : '' })
       });
     } else if (status === constant.S_SYNCING) {
       console.log('syncing')
@@ -92,22 +92,25 @@ function App() {
     try {
       let url = window.location.href;
       console.log(url, 'pattern')
-      const resp = await fetch(constant.BASE_URL + '/gw/admin/v1/public/crawler?origin=' + encodeURIComponent(url), { method: "GET", headers: { 'Content-Type': 'application/json' } });
+      const resp = await fetch(constant.BASE_URL + '/gw/admin/v1/admin/spider/detect?url=' + encodeURIComponent(url), {
+        method: "POST",
+        headers: { 'Content-Type': 'application/json' },
+      });
       if (resp.status === 404) {
         return console.log(404)
       }
       const data = await resp.json();
-      console.log(data, 'rule')
-      if (data.code === 0) {
+      setFrom(_.get(data, 'data.rule.config.from', 'url'))
+      if (data.code === 1002) {
         setStatus(constant.S_SUCCESS);
-      } else if (data.code === -1) {
+      } else if (data.code === -1 || data.code === 1004) {
         setStatus(constant.S_FAIL);
-      } else if (data.code === 11) {
+      } else if (data.code === 1000) {
         setStatus(constant.S_NOMATCH)
-      } else if (data.code === 12) {
+      } else if (data.code === 1001) {
         rule_id = data.data.id;
         setStatus(constant.S_MATCHED);
-      } else if (data.code === 13) {
+      } else if (data.code === 1003) {
         setStatus(constant.S_SYNCING)
       }
     } catch (e) {
