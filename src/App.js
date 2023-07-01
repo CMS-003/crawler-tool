@@ -101,6 +101,7 @@ function App() {
       }
       const data = await resp.json();
       setFrom(_.get(data, 'data.rule.config.from', 'url'))
+      console.log(from, data);
       if (data.code === 1002) {
         setStatus(constant.S_SUCCESS);
       } else if (data.code === -1 || data.code === 1004) {
@@ -108,7 +109,7 @@ function App() {
       } else if (data.code === 1000) {
         setStatus(constant.S_NOMATCH)
       } else if (data.code === 1001) {
-        rule_id = data.data.id;
+        rule_id = data.rule._id;
         setStatus(constant.S_MATCHED);
       } else if (data.code === 1003) {
         setStatus(constant.S_SYNCING)
