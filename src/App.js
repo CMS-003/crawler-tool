@@ -78,10 +78,12 @@ function App() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ url: window.location.href, extra: window.__extra || '', html: from === 'browser' ? document.documentElement.innerHTML : '' })
       });
+      console.log(resp, resp.status)
       if (resp.status !== 200) {
         setStatus(constant.S_FAIL);
       } else {
         const body = resp.json();
+        console.log(body);
         if (body.status === -1) {
           setStatus(constant.S_FAIL);
         }
