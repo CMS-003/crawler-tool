@@ -78,8 +78,13 @@ function App() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ url: window.location.href, extra: window.__extra || '', html: from === 'browser' ? document.documentElement.innerHTML : '' })
       });
-      if (resp.status !== 200 || resp.body.status === -1) {
+      if (resp.status !== 200) {
         setStatus(constant.S_FAIL);
+      } else {
+        const body = resp.json();
+        if (body.status === -1) {
+          setStatus(constant.S_FAIL);
+        }
       }
     } else if (status === constant.S_SYNCING) {
       console.log('syncing')
