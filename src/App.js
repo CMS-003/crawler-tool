@@ -99,7 +99,6 @@ function App() {
     setLoading(true)
     try {
       let url = window.location.href;
-      console.log(url, 'pattern')
       const resp = await fetch(constant.BASE_URL + '/gw/admin/v1/admin/spider/detect?url=' + encodeURIComponent(url), {
         method: "POST",
         headers: { 'Content-Type': 'application/json' },
