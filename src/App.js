@@ -17,7 +17,6 @@ if (ws) {
 }
 
 const whilte_hosts = ['localhost', '127.0.0.1', '192.168.0.124'];
-let withHTML = ['https://jable.tv', 'https://hanime1.me']
 
 let rule_id = '';
 let r = constant.MARGIN;
@@ -128,7 +127,7 @@ function App() {
   })
 
   useEffectOnce(() => {
-    if (!whilte_hosts.includes(window.location.host) || window !== window.parent) {
+    if (!whilte_hosts.includes(window.location.host) && window === window.parent) {
       matchCrawler()
     } else {
       booted = true

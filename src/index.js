@@ -24,13 +24,21 @@ document.ready = function (callback) {
 
 const appended = document.querySelector('#door')
 if (!appended) {
-  setTimeout(() => {
+  let i = 0;
+  let timer = setInterval(() => {
+    i++
     const files = window.performance.getEntries('resource');
     files.forEach(file => {
       if (file.initiatorType === 'xmlhttprequest' && file.name.includes('.m3u8')) {
         console.log(file.name);
+        clearInterval(timer);
+        timer = null;
       }
-    })
+    });
+    if (i > 20) {
+      clearInterval(timer);
+      timer = null;
+    }
   }, 1000);
   const door = document.createElement('div');
   door.id = "door";
