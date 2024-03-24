@@ -10,10 +10,19 @@ import constant from './constant'
 
 if (ws) {
   ws.on('message', data => {
-    if (typeof data === 'object' && data.type === 'crawler') {
-      event.emit('crawler', data);
+    if (typeof data === 'object') {
+      switch (data.type) {
+        case 'crawler':
+          event.emit('crawler', data);
+          break;
+        case 'resource_change':
+          event.emit('resource_change', data);
+          break;
+        default: break;
+      }
+
     }
-  })
+  });
 }
 
 const whilte_hosts = ['localhost', '127.0.0.1', '192.168.0.124'];
@@ -55,6 +64,7 @@ function App() {
   const [dragged, setDragged] = useState(0);
   // 1 nomatch 2 init 3 running 4 success 5 fail
   const [status, setStatus] = useState(constant.S_LOADING);
+  const [resource_id, setResourceID] = useState('');
   // 请求中判断
   const [loading, setLoading] = useState(true);
   const [from, setFrom] = useState('url');
@@ -75,14 +85,19 @@ function App() {
       const resp = await fetch(constant.BASE_URL + '/gw/admin/v1/admin/spider/' + rule_id, {
         method: "PATCH",
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ url: window.location.href, extra: window.__extra || '', html: from === 'browser' ? document.documentElement.innerHTML : '' })
+        body: JSON.stringify({
+          url: window.location.href, extra: window.__extra || '',
+          html: from === 'browser' ? document.documentElement.innerHTML : '',
+        })
       });
       if (resp.status !== 200) {
         setStatus(constant.S_FAIL);
       } else {
         const body = await resp.json();
-        if (body.status === -1) {
+        if (body.status === 'fail') {
           setStatus(constant.S_FAIL);
+        } else if (body.staus === 'success' && body.data.id) {
+          setResourceID(body.data.id);
         }
       }
     } else if (status === constant.S_SYNCING) {
@@ -133,20 +148,8 @@ function App() {
       booted = true
     }
     if (!booted) {
-      const source = new EventSource(constant.BASE_URL + '/sse', { withCredentials: false });
-      source.onmessage = function (e) {
-        try {
-          console.log(e.data, 'sse')
-          const data = JSON.parse(e.data);
-          if (data.name === 'crawled' && data.url === window.location.origin + window.location.pathname) {
-            setStatus(data.extra.status);
-          }
-        } catch (err) {
-          console.log(err);
-        }
-      }
       try {
-        if (chrome) {
+        if (chrome && chrome.runtime) {
           chrome.runtime.onMessage.addListener(function (request, sender, sendReponse) {
             if (request.type === 'url') {
               matchCrawler(request.url);
@@ -175,7 +178,21 @@ function App() {
         } else {
           console.log(d, 'crawler error')
         }
-      })
+      });
+      event.on('resource_change', function (d) {
+        if (d.resource_id !== resource_id) {
+          console.log(`id不同: ${resource_id} ${d.resource_id}`)
+          return;
+        }
+        switch (d.status) {
+          case 'finished':
+            setStatus(constant.S_SUCCESS);
+            break;
+          case 'fail':
+            setStatus(constant.S_FAIL);
+            break;
+        }
+      });
       booted = true
       const d = localStorage.getItem('position')
       if (d) {
