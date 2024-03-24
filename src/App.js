@@ -64,7 +64,8 @@ function App() {
   const [dragged, setDragged] = useState(0);
   // 1 nomatch 2 init 3 running 4 success 5 fail
   const [status, setStatus] = useState(constant.S_LOADING);
-  const [resource_id, setResourceID] = useState('');
+  // const [resource_id, setResourceID] = useState('');
+  const [fuck_you, setFuck] = useState({ resource_id: '' })
   // 请求中判断
   const [loading, setLoading] = useState(true);
   const [from, setFrom] = useState('url');
@@ -96,8 +97,9 @@ function App() {
         const body = await resp.json();
         if (body.status === 'fail') {
           setStatus(constant.S_FAIL);
-        } else if (body.staus === 'success' && body.data.id) {
-          setResourceID(body.data.id);
+        } else if (body.status === 'success' && body.data.id) {
+          fuck_you.resource_id = body.data.id;
+          setFuck(fuck_you);
         }
       }
     } else if (status === constant.S_SYNCING) {
@@ -139,8 +141,7 @@ function App() {
     } finally {
       setLoading(false)
     }
-  })
-
+  });
   useEffectOnce(() => {
     if (!whilte_hosts.includes(window.location.host) && window === window.parent) {
       matchCrawler()
@@ -170,18 +171,9 @@ function App() {
           boxRef.current.style = style
         }
       }, 200))
-      event.on('crawler', function (d) {
-        if (d.status === 'success') {
-          setStatus(constant.S_SUCCESS)
-        } else if (d.status === 'fail') {
-          setStatus(constant.S_FAIL)
-        } else {
-          console.log(d, 'crawler error')
-        }
-      });
       event.on('resource_change', function (d) {
-        if (d.resource_id !== resource_id) {
-          console.log(`id不同: ${resource_id} ${d.resource_id}`)
+        if (fuck_you.resource_id !== d.resource_id) {
+          fuck_you.resource_id = d.resource_id;
           return;
         }
         switch (d.status) {
@@ -191,6 +183,7 @@ function App() {
           case 'fail':
             setStatus(constant.S_FAIL);
             break;
+          default: break;
         }
       });
       booted = true
