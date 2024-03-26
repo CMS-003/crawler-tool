@@ -32,10 +32,8 @@
   cursor: pointer;
 }
 
-@media (prefers-reduced-motion: no-preference) {
-  .crawler-tool .spin {
-    animation: crawler-running infinite 1s linear;
-  }
+.crawler-tool .spin {
+  animation: crawler-running infinite 1s linear;
 }
 
 

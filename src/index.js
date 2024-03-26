@@ -43,6 +43,10 @@ if (!appended) {
   const door = document.createElement('div');
   door.id = "door";
   document.body.append(door)
+  // 恢复原来网页中 body 的 oncontextmenu 事件
+  document.body.oncontextmenu = null;
+  // 恢复原来网页中 body 的样式，允许右键选择
+  document.body.style.userSelect = 'auto';
   const root = ReactDOM.createRoot(document.getElementById('door'));
   root.render(
     <React.StrictMode>
