@@ -1,4 +1,4 @@
-console.log('content-script.js', window)
+console.log('content-script.js')
 function createElement(tag, { style = {}, ...props }) {
   const element = document.createElement(tag);
   Object.keys(style).forEach(k => {
@@ -127,16 +127,24 @@ async function grab() {
   }
 }
 
-function addJS(filepath) {
+function addExternalJS(filepath) {
   const file = chrome.extension.getURL(filepath);
   document.documentElement.appendChild(createElement('script', { type: 'text/javascript', src: filepath }))
 }
 function main() {
-  // 事件部分
-  // 解除限制
-  document.body.oncontextmenu = null;
-  document.body.style.userSelect = 'auto';
-
+  window.onload = function () {
+    console.log('load unlimit js')
+    document.documentElement.appendChild(createElement('script', {
+      type: 'text/javascript',
+      innerHTML: `
+      document.body.oncontextmenu = null;
+      document.body.style.userSelect = 'auto';
+      document.body.ondragstart = null;
+      document.body.ondragend = null;
+      document.body.onselectstart = null;
+      `
+    }))
+  }
   // 插入文档和拖拽
   if (!document.getElementById('crawler-tool')) {
     oContainer.appendChild(oStatus);

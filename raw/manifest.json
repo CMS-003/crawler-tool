@@ -18,9 +18,6 @@
       "/background.js"
     ]
   },
-  "web_accessible_resources": [
-    "socket.io.min.js"
-  ],
   "content_scripts": [
     {
       "matches": [
