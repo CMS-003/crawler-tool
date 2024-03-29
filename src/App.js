@@ -183,6 +183,9 @@ function App() {
           case 'fail':
             setStatus(constant.S_FAIL);
             break;
+          case 'loading':
+            setStatus(constant.S_LOADING);
+            break;
           default: break;
         }
       });
