@@ -65,6 +65,7 @@ const RUNTIME = {
   resource_id: '',
   spider_id: '',
   from: 'url',
+  extra: '',
 }
 const oContainer = createElement('div', {
   id: 'crawler-tool',
@@ -87,6 +88,8 @@ async function detect() {
     RUNTIME.from = _get(body, 'data.rule.config.from', 'url');
     RUNTIME.resource_id = _get(body, 'data.record.id');
     RUNTIME.spider_id = _get(body, 'data.rule._id', '');
+    const extra = _get(body, 'data.rule.extra', '')
+    document.documentElement.appendChild(createElement('script', { type: 'text/javascript', innerHTML: extra }));
     if (body.code === 1002) {
       RUNTIME.setStatus(CONSTANT.SUCCESS);
     } else if (body.code === -1 || body.code === 1004) {
@@ -111,7 +114,7 @@ async function grab() {
     method: "PATCH",
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
-      url: window.location.href, extra: window.__extra || '',
+      url: window.location.href, extra: RUNTIME.extra,
       html: RUNTIME.from === 'browser' ? document.documentElement.innerHTML : '',
     })
   });
@@ -132,7 +135,7 @@ function addExternalJS(filepath) {
   document.documentElement.appendChild(createElement('script', { type: 'text/javascript', src: filepath }))
 }
 function main() {
-  window.onload = function () {
+  window.addEventListener('load', function () {
     console.log('load unlimit js')
     document.documentElement.appendChild(createElement('script', {
       type: 'text/javascript',
@@ -144,7 +147,7 @@ function main() {
       document.body.onselectstart = null;
       `
     }))
-  }
+  });
   // 插入文档和拖拽
   if (!document.getElementById('crawler-tool')) {
     oContainer.appendChild(oStatus);
@@ -333,3 +336,13 @@ if (!whilte_hosts.includes(window.location.origin)) {
 //   }
 // })
 
+window.addEventListener("message", (event) => {
+  // We only accept messages from ourselves
+  if (event.source !== window) {
+    return;
+  }
+  if (event.data.type && (event.data.type === "extra")) {
+    RUNTIME.extra = event.data.extra;
+    console.log("Content script received: " + JSON.stringify(event.data.extra));
+  }
+}, false);
