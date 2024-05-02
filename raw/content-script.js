@@ -215,12 +215,14 @@ function main() {
       const files = window.performance.getEntries('resource');
       files.forEach(file => {
         if (file.initiatorType === 'xmlhttprequest' && file.name.includes('.m3u8')) {
-          console.log(file.name);
           if (new URL(window.location.href).searchParams.get('crawl') === '1') {
-            fetch('http://192.168.0.124:7777/resource/' + RUNTIME.resource_id, { method: 'PATCH' })
-              .then(resp => {
-                const result = resp.json();
+            console.log(file.name, 'update url && download')
+            fetch('https://192.168.0.124/gw/download/resource/' + RUNTIME.resource_id, { method: 'PATCH' })
+              .then(async (resp) => {
+                const result = await resp.json();
                 console.log(result, resp.status)
+              }).catch(e => {
+                console.log(e, 'fetch fail?')
               })
           }
           clearInterval(timer);
