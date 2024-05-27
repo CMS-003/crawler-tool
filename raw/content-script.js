@@ -217,10 +217,14 @@ function main() {
         if (file.initiatorType === 'xmlhttprequest' && file.name.includes('.m3u8')) {
           if (new URL(window.location.href).searchParams.get('crawl') === '1') {
             console.log(file.name, 'update url && download')
-            fetch('https://192.168.0.124/gw/download/resource/' + RUNTIME.resource_id, { method: 'PATCH' })
+            fetch('https://192.168.0.124/gw/download/resource/' + RUNTIME.resource_id, { 
+              method: 'PATCH', 
+              headers: { 'Content-Type': 'application/json' }, 
+              body: JSON.stringify({ url: file.name}) })
               .then(async (resp) => {
                 const result = await resp.json();
                 console.log(result, resp.status)
+                window.close();
               }).catch(e => {
                 console.log(e, 'fetch fail?')
               })
