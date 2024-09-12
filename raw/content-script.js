@@ -1,4 +1,3 @@
-console.log('content-script.js')
 function createElement(tag, { style = {}, ...props }) {
   const element = document.createElement(tag);
   Object.keys(style).forEach(k => {
@@ -109,7 +108,6 @@ async function detect() {
 }
 
 async function grab() {
-  RUNTIME.setStatus(CONSTANT.SYNCING)
   const resp = await fetch(CONSTANT.BASE_URL + '/gw/admin/v1/admin/spider/' + RUNTIME.spider_id, {
     method: "PATCH",
     headers: { 'Content-Type': 'application/json' },
@@ -119,11 +117,13 @@ async function grab() {
     })
   });
   if (resp.status !== 200) {
-    RUNTIME.setStatus(CONSTANT.ERRORED);
+    // RUNTIME.setStatus(CONSTANT.ERRORED);
+    return CONSTANT.ERRORED
   } else {
     const body = await resp.json();
     if (body.status === 'fail') {
-      RUNTIME.setStatus(CONSTANT.ERRORED);
+      // RUNTIME.setStatus(CONSTANT.ERRORED);
+      return CONSTANT.ERRORED
     } else if (body.status === 'success' && body.data.id) {
       RUNTIME.resource_id = body.data.id;
     }
@@ -163,7 +163,13 @@ function main() {
       } else if (RUNTIME.status === CONSTANT.NOMATCH) {
         window.open(CONSTANT.BASE_URL + '/admin/home/rule2-manage', '_blank')
       } else if (RUNTIME.status === CONSTANT.MATCHED) {
-        grab()
+        RUNTIME.setStatus(CONSTANT.SYNCING)
+        grab().then(status => {
+          status && RUNTIME.setStatus(status);
+        }).catch(e => {
+          console.log(e);
+          RUNTIME.setStatus(CONSTANT.ERRORED)
+        })
       } else if (RUNTIME.status === CONSTANT.SYNCING) {
         console.log('syncing')
       } else if (RUNTIME.status === CONSTANT.SUCCESS) {
@@ -196,11 +202,9 @@ function main() {
       document.addEventListener('mousemove', move);
     }
     // 拖拽结束
-    document.onmouseup = function (event) {
+    document.addEventListener('mouseup', function (event) {
       document.removeEventListener('mousemove', move)
-      event.stopPropagation();
-      event.preventDefault();
-    }
+    });
   };
   document.addEventListener('keydown', e => {
     if (e.key === 'F4') {
@@ -217,10 +221,11 @@ function main() {
         if (file.initiatorType === 'xmlhttprequest' && file.name.includes('.m3u8')) {
           if (new URL(window.location.href).searchParams.get('crawl') === '1') {
             console.log(file.name, 'update url && download')
-            fetch('https://192.168.0.124/gw/download/resource/' + RUNTIME.resource_id, { 
-              method: 'PATCH', 
-              headers: { 'Content-Type': 'application/json' }, 
-              body: JSON.stringify({ url: file.name}) })
+            fetch('https://192.168.0.124/gw/download/resource/' + RUNTIME.resource_id, {
+              method: 'PATCH',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ url: file.name })
+            })
               .then(async (resp) => {
                 const result = await resp.json();
                 console.log(result, resp.status)
@@ -286,12 +291,14 @@ function main() {
       chrome.runtime.onMessage.addListener(function (request, sender, sendReponse) {
         if (request.type === 'url') {
           detect(request.url);
-          console.log(request.url, 'changeed')
+          console.log(request.url, 'changed')
         } else if (request.type === "contextmenu" && request.value === 'clear_white_hosts') {
           // 清空 Chrome 扩展中的存储数据
           chrome.storage.sync.clear(function () {
             alert("存储数据已清空");
           });
+        } else if (request.type === 'contextmenu' && request.value === 'patch_url') {
+          console.log(request.url, 'patch_url');
         }
       });
     }
