@@ -85,7 +85,7 @@ async function detect() {
     });
     const body = await resp.json();
     RUNTIME.from = _get(body, 'data.rule.config.from', 'url');
-    RUNTIME.resource_id = _get(body, 'data.record.id');
+    RUNTIME.resource_id = _get(body, 'data.record._id');
     RUNTIME.spider_id = _get(body, 'data.rule._id', '');
     const extra = _get(body, 'data.rule.extra', '')
     document.documentElement.appendChild(createElement('script', { type: 'text/javascript', innerHTML: extra }));
@@ -124,8 +124,8 @@ async function grab() {
     if (body.status === 'fail') {
       // RUNTIME.setStatus(CONSTANT.ERRORED);
       return CONSTANT.ERRORED
-    } else if (body.status === 'success' && body.data.id) {
-      RUNTIME.resource_id = body.data.id;
+    } else if (body.status === 'success' && body.data._id) {
+      RUNTIME.resource_id = body.data._id;
     }
   }
 }
@@ -279,7 +279,11 @@ function main() {
           fail: 'ERRORED',
           loading: 'MATCHED',
           finished: 'SUCCESS',
-          init: 'MATCHED'
+          init: 'MATCHED',
+          1: 'MATCHED',
+          2: 'MATCHED',
+          3: 'ERRORED',
+          4: 'SUCCESS',
         }
         RUNTIME.setStatus(map[data.status]);
       }
