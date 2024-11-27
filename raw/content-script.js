@@ -1,3 +1,9 @@
+/**
+ * 流程说明
+ * 页面加载后调用detect()探测规则，成功则将脚本通过script标签执行，获取的数据通过postMessage传递到RUNTIME.extra
+ * 然后在调用grab()时访问RUNTIME.extra获取数据
+ */
+
 function createElement(tag, { style = {}, ...props }) {
   const element = document.createElement(tag);
   Object.keys(style).forEach(k => {
@@ -64,6 +70,7 @@ const RUNTIME = {
   resource_id: '',
   spider_id: '',
   from: 'url',
+  script: '',
   extra: '',
 }
 const oContainer = createElement('div', {
@@ -87,8 +94,10 @@ async function detect() {
     RUNTIME.from = _get(body, 'data.rule.config.from', 'url');
     RUNTIME.resource_id = _get(body, 'data.record._id');
     RUNTIME.spider_id = _get(body, 'data.rule._id', '');
-    const extra = _get(body, 'data.rule.extra', '')
-    document.documentElement.appendChild(createElement('script', { type: 'text/javascript', innerHTML: extra }));
+    if (!RUNTIME.script) {
+      RUNTIME.script = _get(body, 'data.rule.extra', '');
+      document.documentElement.appendChild(createElement('script', { type: 'text/javascript', innerHTML: RUNTIME.script }));
+    }
     if (body.code === 1002) {
       RUNTIME.setStatus(CONSTANT.SUCCESS);
     } else if (body.code === -1 || body.code === 1004) {
@@ -123,6 +132,7 @@ async function grab() {
     const body = await resp.json();
     if (body.status === 'fail') {
       // RUNTIME.setStatus(CONSTANT.ERRORED);
+      alert(body.message)
       return CONSTANT.ERRORED
     } else if (body.status === 'success' && body.data._id) {
       RUNTIME.resource_id = body.data._id;
@@ -365,8 +375,7 @@ window.addEventListener("message", (event) => {
   if (event.source !== window) {
     return;
   }
-  if (event.data.type && (event.data.type === "extra")) {
+  if (event.data.type === "extra") {
     RUNTIME.extra = event.data.extra;
-    console.log("Content script received: " + JSON.stringify(event.data.extra));
   }
 }, false);
