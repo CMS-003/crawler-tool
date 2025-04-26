@@ -86,18 +86,19 @@ async function detect() {
   try {
     let url = window.location.href;
     RUNTIME.setStatus(CONSTANT.LOADING);
-    const resp = await fetch(CONSTANT.BASE_URL + '/gw/admin/v1/admin/spider/detect?url=' + encodeURIComponent(url), {
-      method: "POST",
+    const resp = await fetch(CONSTANT.BASE_URL + '/gw/manager/api/v1/public/crawl?url=' + encodeURIComponent(url), {
+      method: "PATCH",
       headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ url })
     });
     const body = await resp.json();
     RUNTIME.from = _get(body, 'data.rule.config.from', 'url');
     RUNTIME.resource_id = _get(body, 'data.record._id');
     RUNTIME.spider_id = _get(body, 'data.rule._id', '');
-    if (!RUNTIME.script) {
-      RUNTIME.script = _get(body, 'data.rule.extra', '');
-      document.documentElement.appendChild(createElement('script', { type: 'text/javascript', innerHTML: RUNTIME.script }));
-    }
+    // if (!RUNTIME.script) {
+    //   RUNTIME.script = _get(body, 'data.rule.extra', '');
+    //   document.documentElement.appendChild(createElement('script', { type: 'text/javascript', innerHTML: RUNTIME.script }));
+    // }
     if (body.code === 1002) {
       RUNTIME.setStatus(CONSTANT.SUCCESS);
     } else if (body.code === -1 || body.code === 1004) {
@@ -117,8 +118,8 @@ async function detect() {
 }
 
 async function grab() {
-  const resp = await fetch(CONSTANT.BASE_URL + '/gw/admin/v1/admin/spider/' + RUNTIME.spider_id, {
-    method: "PATCH",
+  const resp = await fetch(CONSTANT.BASE_URL + '/gw/manager/api/v1/public/crawl/' + RUNTIME.spider_id, {
+    method: "POST",
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       url: window.location.href, extra: RUNTIME.extra,
@@ -141,22 +142,12 @@ async function grab() {
 }
 
 function addExternalJS(filepath) {
-  const file = chrome.extension.getURL(filepath);
-  document.documentElement.appendChild(createElement('script', { type: 'text/javascript', src: filepath }))
+  const file = chrome.runtime.getURL(filepath);
+  document.documentElement.appendChild(createElement('script', { type: 'text/javascript', 'nonce-ec31d59c-b109-44f9-a285-2cf772ad7d08': true, src: filepath }))
 }
 function main() {
   window.addEventListener('load', function () {
     console.log('load unlimit js')
-    document.documentElement.appendChild(createElement('script', {
-      type: 'text/javascript',
-      innerHTML: `
-      document.body.oncontextmenu = null;
-      document.body.style.userSelect = 'auto';
-      document.body.ondragstart = null;
-      document.body.ondragend = null;
-      document.body.onselectstart = null;
-      `
-    }))
   });
   // 插入文档和拖拽
   if (!document.getElementById('crawler-tool')) {
@@ -343,7 +334,7 @@ function main() {
 }
 
 main();
-if (!whilte_hosts.includes(window.location.origin)) {
+if (!whilte_hosts.includes(window.location.hostname)) {
   detect();
 }
 
