@@ -333,8 +333,8 @@ function main() {
   }
 }
 
-main();
 if (!whilte_hosts.includes(window.location.hostname)) {
+  main();
   detect();
 }
 
