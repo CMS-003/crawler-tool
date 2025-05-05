@@ -92,7 +92,7 @@ async function detect() {
       body: JSON.stringify({ url })
     });
     const body = await resp.json();
-    RUNTIME.from = _get(body, 'data.rule.config.from', 'url');
+    RUNTIME.from = _get(body, 'data.rule.from', 'url');
     RUNTIME.resource_id = _get(body, 'data.record._id');
     RUNTIME.spider_id = _get(body, 'data.rule._id', '');
     // if (!RUNTIME.script) {
@@ -122,8 +122,9 @@ async function grab() {
     method: "POST",
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
-      url: window.location.href, extra: RUNTIME.extra,
-      html: RUNTIME.from === 'browser' ? document.documentElement.innerHTML : '',
+      url: window.location.href, 
+      extra: RUNTIME.extra,
+      html: RUNTIME.from === 'html' ? document.documentElement.innerHTML : '',
     })
   });
   if (resp.status !== 200) {
