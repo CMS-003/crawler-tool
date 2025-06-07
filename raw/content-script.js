@@ -77,7 +77,7 @@ const oContainer = createElement('div', {
   id: 'crawler-tool',
   className: 'crawler-tool',
   style: {
-    right: '20px', top: '20px', width: '32px', height: '32px',
+    right: '20px', top: '20px', width: '32px', height: '32px', 'z-index': 999999999
   }
 });
 const oStatus = createElement('span', { style: {}, className: 'spin', innerHTML: CONSTANT.IMAGES[RUNTIME.status] })
