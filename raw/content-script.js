@@ -86,7 +86,7 @@ async function detect() {
   try {
     let url = window.location.href;
     RUNTIME.setStatus(CONSTANT.LOADING);
-    const resp = await fetch(CONSTANT.BASE_URL + '/gw/manager/api/v1/public/crawl?url=' + encodeURIComponent(url), {
+    const resp = await fetch(CONSTANT.BASE_URL + '/gw/api/v1/public/crawl?url=' + encodeURIComponent(url), {
       method: "PATCH",
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ url })
@@ -118,7 +118,7 @@ async function detect() {
 }
 
 async function grab() {
-  const resp = await fetch(CONSTANT.BASE_URL + '/gw/manager/api/v1/public/crawl/' + RUNTIME.spider_id, {
+  const resp = await fetch(CONSTANT.BASE_URL + '/gw/api/v1/public/crawl/' + RUNTIME.spider_id, {
     method: "POST",
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
