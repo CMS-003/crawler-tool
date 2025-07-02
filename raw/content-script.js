@@ -33,7 +33,7 @@ function _get(obj, path, defaultValue) {
 }
 let whilte_hosts = ['localhost', '127.0.0.1', '192.168.0.124'];
 const CONSTANT = {
-  BASE_URL: 'https://192.168.0.124',
+  BASE_URL: 'https://u67631x482.vicp.fun',
   // 边界间距
   MARGIN: 15,
   // 本身尺寸大小
@@ -58,7 +58,7 @@ const CONSTANT = {
 const RUNTIME = {
   status: CONSTANT.LOADING,
   setStatus(s) {
-    if (s === RUNTIME.status) {
+    if (s === RUNTIME.status || !CONSTANT.IMAGES[s]) {
       return;
     }
     RUNTIME.status = s;
@@ -95,10 +95,6 @@ async function detect() {
     RUNTIME.from = _get(body, 'data.rule.from', 'url');
     RUNTIME.resource_id = _get(body, 'data.record._id');
     RUNTIME.spider_id = _get(body, 'data.rule._id', '');
-    // if (!RUNTIME.script) {
-    //   RUNTIME.script = _get(body, 'data.rule.extra', '');
-    //   document.documentElement.appendChild(createElement('script', { type: 'text/javascript', innerHTML: RUNTIME.script }));
-    // }
     if (body.code === 1002) {
       RUNTIME.setStatus(CONSTANT.SUCCESS);
     } else if (body.code === -1 || body.code === 1004) {
@@ -122,7 +118,7 @@ async function grab() {
     method: "POST",
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
-      url: window.location.href, 
+      url: window.location.href,
       extra: RUNTIME.extra,
       html: RUNTIME.from === 'html' ? document.documentElement.innerHTML : '',
     })
@@ -142,19 +138,15 @@ async function grab() {
   }
 }
 
-function addExternalJS(filepath) {
-  const file = chrome.runtime.getURL(filepath);
-  document.documentElement.appendChild(createElement('script', { type: 'text/javascript', 'nonce-ec31d59c-b109-44f9-a285-2cf772ad7d08': true, src: filepath }))
-}
 function main() {
-  window.addEventListener('load', function () {
-    console.log('load unlimit js')
-  });
+  let dealClick = null;
   // 插入文档和拖拽
   if (!document.getElementById('crawler-tool')) {
+    // 开始拖拽
+    let mouse = null;
     oContainer.appendChild(oStatus);
     document.body.appendChild(oContainer);
-    function dealClick() {
+    dealClick = function () {
       const moves = mouse ? mouse.moves : 1;
       mouse = null;
       if (moves > 1) {
@@ -181,8 +173,6 @@ function main() {
       }
     }
     oContainer.addEventListener('click', dealClick);
-    // 开始拖拽
-    let mouse = null;
     function move(event) {
       console.log('move')
       // 盒子的位置 = 鼠标与页面之间的距离 - 鼠标与盒子之间的距离
@@ -210,7 +200,7 @@ function main() {
   };
   document.addEventListener('keydown', e => {
     if (e.key === 'F4') {
-      dealClick()
+      dealClick && dealClick()
     }
   });
   // 寻找 m3u8
@@ -223,7 +213,7 @@ function main() {
         if (file.initiatorType === 'xmlhttprequest' && file.name.includes('.m3u8')) {
           if (new URL(window.location.href).searchParams.get('crawl') === '1') {
             console.log(file.name, 'update url && download')
-            fetch('https://192.168.0.124/gw/download/resource/' + RUNTIME.resource_id, {
+            fetch(CONSTANT.BASE_URL + '/gw/download/resource/' + RUNTIME.resource_id, {
               method: 'PATCH',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ url: file.name })
@@ -249,7 +239,7 @@ function main() {
 
   // websocket 通信
   if (window.io) {
-    const ws = io(CONSTANT.BASE_URL, {
+    const ws = window.io(CONSTANT.BASE_URL, {
       path: '/ws',
       reconnectionAttempts: 3
     });
@@ -276,98 +266,132 @@ function main() {
       console.log("连接超时-connect_timeout", data);
     });
     ws.on('message', data => {
-      if (data.type === 'resource_change' && data.resource_id === RUNTIME.resource_id) {
-        const map = {
-          fail: 'ERRORED',
-          loading: 'MATCHED',
-          finished: 'SUCCESS',
-          init: 'MATCHED',
-          1: 'MATCHED',
-          2: 'MATCHED',
-          3: 'ERRORED',
-          4: 'SUCCESS',
-        }
-        RUNTIME.setStatus(map[data.status]);
+      console.log(data, 'ws')
+      if (data.type) {
+        events.emit(data.type, data);
       }
     });
   }
-  if (chrome) {
-    if (chrome.runtime) {
-      // url push 事件
-      chrome.runtime.onMessage.addListener(function (request, sender, sendReponse) {
-        if (request.type === 'url') {
-          detect(request.url);
-          console.log(request.url, 'changed')
-        } else if (request.type === "contextmenu" && request.value === 'clear_white_hosts') {
-          // 清空 Chrome 扩展中的存储数据
-          chrome.storage.sync.clear(function () {
-            alert("存储数据已清空");
-          });
-        } else if (request.type === 'contextmenu' && request.value === 'patch_url') {
-          console.log(request.url, 'patch_url');
-        }
-      });
-    }
-    // 保存数据到本地存储
-    function saveData(key, value) {
-      chrome.storage.local.set({ [key]: value }, function () {
-        console.log('Data saved: ' + key + ' - ' + value);
-      });
-    }
+}
 
-    // 从本地存储中读取数据
-    function readData(key, callback) {
-      chrome.storage.local.get(key, function (result) {
-        console.log('Data read: ' + key + ' - ' + result[key]);
-        callback(result[key]);
-      });
-    }
-    if (chrome.storage) {
-      readData('white_hosts', function (result) {
-        if (!result) {
-          saveData('white_hosts', JSON.stringify(whilte_hosts))
+const storage = {
+  get(key) {
+    return new Promise((resolve, reject) => {
+      chrome.storage.local.get([key], (result) => {
+        if (chrome.runtime.lastError) {
+          reject(chrome.runtime.lastError);
         } else {
-          whilte_hosts = JSON.parse(result);
+          resolve(typeof result === 'object' ? result[key] : result);
         }
-      })
+      });
+    });
+  },
+
+  set(key, value) {
+    return new Promise((resolve, reject) => {
+      chrome.storage.local.set({ [key]: value }, () => {
+        if (chrome.runtime.lastError) {
+          reject(chrome.runtime.lastError);
+        } else {
+          resolve(true);
+        }
+      });
+    });
+  },
+
+  remove(key) {
+    return new Promise((resolve, reject) => {
+      chrome.storage.local.remove([key], () => {
+        if (chrome.runtime.lastError) {
+          reject(chrome.runtime.lastError);
+        } else {
+          resolve(true);
+        }
+      });
+    });
+  },
+
+  clear() {
+    return new Promise((resolve, reject) => {
+      chrome.storage.local.clear(() => {
+        if (chrome.runtime.lastError) {
+          reject(chrome.runtime.lastError);
+        } else {
+          resolve(true);
+        }
+      });
+    });
+  }
+};
+
+// 自定义事件
+const events = {
+  events: {},
+  emit: (event, data) => {
+    const e = new CustomEvent(event, { detail: data })
+    document.dispatchEvent(e);
+  },
+  on: (event, fn) => {
+    if (!events.events[event]) {
+      events.events[event] = [fn]
+    } else {
+      events.events[event].push(fn);
     }
-  }
+    document.addEventListener(event, fn);
+  },
 }
-
-if (!whilte_hosts.includes(window.location.hostname)) {
-  main();
-  detect();
-}
-
-// // 自定义事件
-// const events = {
-//   events: {},
-//   emit: (event, data) => {
-//     const e = new CustomEvent(event, { detail: data })
-//     document.dispatchEvent(e);
-//   },
-//   on: (event, fn) => {
-//     if (!events.events[event]) {
-//       events.events[event] = [fn]
-//     } else {
-//       events.events[event].push(fn);
-//     }
-//     document.addEventListener(event, fn);
-//   },
-// }
-// events.on('resource_change', (e) => {
-//   const data = e.detail;
-//   if (data.status) {
-//     RUNTIME.setStatus(data.status);
-//   }
-// })
-
-window.addEventListener("message", (event) => {
-  // We only accept messages from ourselves
-  if (event.source !== window) {
-    return;
+events.on('resource_change', (e) => {
+  const data = e.detail;
+  if (data.status) {
+    RUNTIME.setStatus(data.status);
   }
-  if (event.data.type === "extra") {
-    RUNTIME.extra = event.data.extra;
+})
+
+chrome.runtime.onMessage.addListener(async (message, sender, sendResponse) => {
+  console.log("收到消息：", message);
+  const hostname = window.location.hostname;
+  try {
+    if (message.type === 'contextmenu') {
+      switch (message.value) {
+        case 'clear_host':
+          await storage.remove('hosts')
+          break;
+        case 'add_host':
+          if (!whilte_hosts.includes(hostname)) {
+            whilte_hosts.push(hostname)
+          }
+          await storage.set('hosts', whilte_hosts)
+          break
+        case 'del_host':
+          if (whilte_hosts.includes(hostname)) {
+            whilte_hosts = whilte_hosts.filter(name => name !== hostname);
+            await storage.set('hosts', whilte_hosts)
+          }
+          break;
+        default: break;
+      }
+    } else if (message.type === 'url') {
+      if (whilte_hosts.includes(new URL(message.url).hostname)) {
+        detect(message.url);
+        console.log(message.url, 'url changed')
+      }
+    }
+  } catch (e) {
+    console.error('执行失败', e)
   }
-}, false);
+  // 必须有这个
+  return true;
+});
+
+storage.get('hosts').then(hosts => {
+  console.log(hosts, 'hosts')
+  if (hosts instanceof Array) {
+    whilte_hosts = hosts;
+  } else {
+    storage.set('hosts', whilte_hosts)
+  }
+  if (!whilte_hosts.includes(window.location.hostname)) {
+    main();
+    detect();
+  }
+})
