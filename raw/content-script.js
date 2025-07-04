@@ -93,7 +93,7 @@ async function detect() {
     });
     const body = await resp.json();
     RUNTIME.from = _get(body, 'data.rule.from', 'url');
-    RUNTIME.resource_id = _get(body, 'data.record._id');
+    RUNTIME.resource_id = _get(body, 'data.record.resource_id');
     RUNTIME.spider_id = _get(body, 'data.rule._id', '');
     if (body.code === 1002) {
       RUNTIME.setStatus(CONSTANT.SUCCESS);
@@ -267,7 +267,7 @@ function main() {
     });
     ws.on('message', data => {
       console.log(data, 'ws')
-      if (data.type) {
+      if (data.type && data.resource_id === RUNTIME.resource_id) {
         events.emit(data.type, data);
       }
     });
