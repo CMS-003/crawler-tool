@@ -31,7 +31,7 @@ function _get(obj, path, defaultValue) {
 
   return result !== undefined ? result : defaultValue;
 }
-let whilte_hosts = ['localhost', '127.0.0.1', '192.168.0.124'];
+let whilte_hosts = [];
 const CONSTANT = {
   BASE_URL: 'https://u67631x482.vicp.fun',
   // 边界间距
@@ -390,7 +390,7 @@ storage.get('hosts').then(hosts => {
   } else {
     storage.set('hosts', whilte_hosts)
   }
-  if (!whilte_hosts.includes(window.location.hostname)) {
+  if (whilte_hosts.includes(window.location.hostname)) {
     main();
     detect();
   }
