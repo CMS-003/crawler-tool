@@ -33,7 +33,7 @@ function _get(obj, path, defaultValue) {
 }
 let white_list = [];
 const CONSTANT = {
-  BASE_URL: 'https://u67631x482.vicp.fun',
+  BASE_URL: 'https://192.168.0.124',
   // 边界间距
   MARGIN: 15,
   // 本身尺寸大小
@@ -386,6 +386,10 @@ chrome.runtime.onMessage.addListener(async (message, sender, sendResponse) => {
 storage.get('list').then(list => {
   if (list instanceof Array) {
     white_list = list;
+    if (white_list.includes(window.location.origin)) {
+      main();
+      detect();
+    }
   } else {
     fetch(CONSTANT.BASE_URL + '/gw/api/v1/public/crawl/', {
       method: "GET",
