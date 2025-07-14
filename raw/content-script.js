@@ -31,7 +31,7 @@ function _get(obj, path, defaultValue) {
 
   return result !== undefined ? result : defaultValue;
 }
-let whilte_hosts = [];
+let white_list = [];
 const CONSTANT = {
   BASE_URL: 'https://u67631x482.vicp.fun',
   // 边界间距
@@ -349,29 +349,29 @@ events.on('resource_change', (e) => {
 
 chrome.runtime.onMessage.addListener(async (message, sender, sendResponse) => {
   console.log("收到消息：", message);
-  const hostname = window.location.hostname;
+  const origin = window.location.origin;
   try {
     if (message.type === 'contextmenu') {
       switch (message.value) {
-        case 'clear_host':
-          await storage.remove('hosts')
+        case 'clear_list':
+          await storage.remove('list')
           break;
-        case 'add_host':
-          if (!whilte_hosts.includes(hostname)) {
-            whilte_hosts.push(hostname)
+        case 'add_list':
+          if (!white_list.includes(origin)) {
+            white_list.push(origin)
           }
-          await storage.set('hosts', whilte_hosts)
+          await storage.set('list', white_list)
           break
-        case 'del_host':
-          if (whilte_hosts.includes(hostname)) {
-            whilte_hosts = whilte_hosts.filter(name => name !== hostname);
-            await storage.set('hosts', whilte_hosts)
+        case 'del_list':
+          if (white_list.includes(origin)) {
+            white_list = white_list.filter(name => name !== origin);
+            await storage.set('list', white_list)
           }
           break;
         default: break;
       }
     } else if (message.type === 'url') {
-      if (whilte_hosts.includes(new URL(message.url).hostname)) {
+      if (white_list.includes(new URL(message.url).origin)) {
         detect(message.url);
         console.log(message.url, 'url changed')
       }
@@ -383,15 +383,24 @@ chrome.runtime.onMessage.addListener(async (message, sender, sendResponse) => {
   return true;
 });
 
-storage.get('hosts').then(hosts => {
-  console.log(hosts, 'hosts')
-  if (hosts instanceof Array) {
-    whilte_hosts = hosts;
+storage.get('list').then(list => {
+  if (list instanceof Array) {
+    white_list = list;
   } else {
-    storage.set('hosts', whilte_hosts)
-  }
-  if (whilte_hosts.includes(window.location.hostname)) {
-    main();
-    detect();
+    fetch(CONSTANT.BASE_URL + '/gw/api/v1/public/crawl/', {
+      method: "GET",
+      headers: { 'Content-Type': 'application/json' },
+    }).then(async (resp) => {
+      if (resp.status === 200) {
+        white_list = await resp.json()
+        storage.set('list', white_list)
+        if (white_list.includes(window.location.origin)) {
+          main();
+          detect();
+        }
+      }
+    }).catch(() => {
+      console.log('更新白名单失败');
+    });
   }
 })
