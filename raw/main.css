@@ -31,18 +31,3 @@
 .crawler-tool img:hover {
   cursor: pointer;
 }
-
-.crawler-tool .spin {
-  animation: crawler-running infinite 1s linear;
-}
-
-
-@keyframes crawler-running {
-  from {
-    transform: rotate(0deg);
-  }
-
-  to {
-    transform: rotate(360deg);
-  }
-}
