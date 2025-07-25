@@ -69,7 +69,7 @@ const oContainer = createElement('div', {
   id: 'crawler-tool',
   className: 'crawler-tool',
   style: {
-    right: '20px', top: '20px', width: '32px', height: '32px', 'z-index': 999999999
+    width: '32px', height: '32px', 'z-index': 999999999
   }
 });
 const oStatus = createElement('span', { style: {}, innerHTML: CONSTANT.IMAGES[RUNTIME.status] })
@@ -85,7 +85,7 @@ async function detect() {
     });
     const body = await resp.json();
     RUNTIME.from = _get(body, 'data.rule.from', 'url');
-    RUNTIME.resource_id = _get(body, 'data.record.resource_id');
+    RUNTIME.resource_id = _get(body, 'data.record._id');
     RUNTIME.spider_id = _get(body, 'data.rule._id', '');
     if (body.code === 1002) {
       RUNTIME.setStatus(CONSTANT.SUCCESS);
@@ -99,9 +99,7 @@ async function detect() {
       RUNTIME.setStatus(CONSTANT.SYNCING)
     }
   } catch (e) {
-    console.log(e)
     RUNTIME.setStatus(CONSTANT.ERRORED)
-  } finally {
   }
 }
 
@@ -115,12 +113,10 @@ async function grab() {
     })
   });
   if (resp.status !== 200) {
-    // RUNTIME.setStatus(CONSTANT.ERRORED);
     return CONSTANT.ERRORED
   } else {
     const body = await resp.json();
     if (body.code === -1) {
-      // RUNTIME.setStatus(CONSTANT.ERRORED);
       alert(body.message)
       return CONSTANT.ERRORED
     } else if (body.code === 0) {
@@ -134,6 +130,15 @@ function main() {
   let dealClick = null;
   // 插入文档和拖拽
   if (!document.getElementById('crawler-tool')) {
+    let xy = { right: 16, top: 16 };
+    try {
+      const info = localStorage.getItem('crawler_position');
+      const pos = info ? JSON.parse(info) : xy;
+      oContainer.style.right = pos.right + 'px'
+      oContainer.style.top = pos.top + 'px'
+    } catch (e) {
+
+    }
     // 开始拖拽
     let mouse = null;
     oContainer.appendChild(oStatus);
@@ -144,31 +149,23 @@ function main() {
       if (moves > 1) {
         return;
       }
-      if (RUNTIME.status === CONSTANT.LOADING) {
-        // 请求中不处理点击事件
-      } else if (RUNTIME.status === CONSTANT.NOMATCH) {
-        window.open(CONSTANT.BASE_URL + '/admin/home/rule2-manage', '_blank')
+      if (RUNTIME.status === CONSTANT.NOMATCH) {
+        window.open(CONSTANT.BASE_URL + '/manager', '_blank')
       } else if (RUNTIME.status === CONSTANT.MATCHED) {
         RUNTIME.setStatus(CONSTANT.LOADING)
         grab().then(status => {
           status && RUNTIME.setStatus(status);
         }).catch(e => {
-          console.log(e);
           RUNTIME.setStatus(CONSTANT.ERRORED)
         })
-      } else if (RUNTIME.status === CONSTANT.SYNCING) {
-        console.log('syncing')
-      } else if (RUNTIME.status === CONSTANT.SUCCESS) {
-        console.log('retry')
       } else if (RUNTIME.status === CONSTANT.ERRORED) {
         detect()
       }
     }
     oContainer.addEventListener('click', dealClick);
     function move(event) {
-      console.log('move')
       // 盒子的位置 = 鼠标与页面之间的距离 - 鼠标与盒子之间的距离
-      oContainer.style.left = event.clientX - mouse.x + "px";
+      oContainer.style.right = window.document.documentElement.offsetWidth - (event.clientX - mouse.x) - 32 + "px";
       oContainer.style.top = event.clientY - mouse.y + "px";
       event.preventDefault();
       event.stopPropagation();
@@ -188,6 +185,9 @@ function main() {
     // 拖拽结束
     document.addEventListener('mouseup', function (event) {
       document.removeEventListener('mousemove', move)
+      xy.right = (window.document.documentElement.offsetWidth - event.clientX) - 16
+      xy.top = event.clientY - 16
+      localStorage.setItem('crawler_position', JSON.stringify(xy))
     });
   };
   document.addEventListener('keydown', e => {
@@ -195,39 +195,6 @@ function main() {
       dealClick && dealClick()
     }
   });
-  // 寻找 m3u8
-  (function () {
-    let i = 0;
-    let timer = setInterval(() => {
-      i++
-      const files = window.performance.getEntries('resource');
-      files.forEach(file => {
-        if (file.initiatorType === 'xmlhttprequest' && file.name.includes('.m3u8')) {
-          if (new URL(window.location.href).searchParams.get('crawl') === '1') {
-            console.log(file.name, 'update url && download')
-            fetch(CONSTANT.BASE_URL + '/gw/download/resource/' + RUNTIME.resource_id, {
-              method: 'PATCH',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ url: file.name })
-            })
-              .then(async (resp) => {
-                const result = await resp.json();
-                console.log(result, resp.status)
-                window.close();
-              }).catch(e => {
-                console.log(e, 'fetch fail?')
-              })
-          }
-          clearInterval(timer);
-          timer = null;
-        }
-      });
-      if (i > 20) {
-        clearInterval(timer);
-        timer = null;
-      }
-    }, 1000);
-  })();
 
   // websocket 通信
   if (window.io) {
@@ -365,7 +332,6 @@ chrome.runtime.onMessage.addListener(async (message, sender, sendResponse) => {
     } else if (message.type === 'url') {
       if (white_list.includes(new URL(message.url).origin)) {
         detect(message.url);
-        console.log(message.url, 'url changed')
       }
     }
   } catch (e) {
