@@ -30,3 +30,12 @@ chrome.contextMenus.onClicked.addListener(function (info, tab) {
   // info: menuItemId,parentMenuItemId,mediaType,linkUrl,srcUrl,pageUrl,frameUrl,selectionText,editable
   chrome.tabs.sendMessage(tab.id, { type: 'contextmenu', value: info.menuItemId, url: info.linkUrl || '' });
 });
+
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  if (message.action === "cookies") {
+    chrome.cookies.getAll({ url: message.origin }, (cookies) => {
+      sendResponse({ cookies });
+    });
+    return true;
+  }
+});

@@ -25,6 +25,19 @@ function _get(obj, path, defaultValue) {
 
   return result !== undefined ? result : defaultValue;
 }
+function getNetscapeCookies(cookies) {
+  const lines = cookies.map(cookie => {
+    const domain = cookie.domain.startsWith('.') ? cookie.domain : '.' + cookie.domain;
+    const flag = cookie.domain.startsWith('.') ? 'TRUE' : 'FALSE';
+    const path = cookie.path || '/';
+    const secure = cookie.secure ? 'TRUE' : 'FALSE';
+    const expiration = cookie.expirationDate ? Math.floor(cookie.expirationDate) : 1893456000; // fallback: 2030
+    return `${domain}\t${flag}\t${path}\t${secure}\t${expiration}\t${cookie.name}\t${cookie.value}`;
+  });
+
+  const header = "# Netscape HTTP Cookie File\n";
+  return header + lines.join('\n');
+}
 let white_list = [];
 const CONSTANT = {
   BASE_URL: 'https://192.168.0.124',
@@ -64,7 +77,9 @@ const RUNTIME = {
   spider_id: '',
   from: 'url',
   script: '',
+  cookies: '',
 }
+window.__RUNTIME = RUNTIME;
 const oContainer = createElement('div', {
   id: 'crawler-tool',
   className: 'crawler-tool',
@@ -76,6 +91,9 @@ const oStatus = createElement('span', { style: {}, innerHTML: CONSTANT.IMAGES[RU
 
 async function detect() {
   try {
+    chrome.runtime.sendMessage({ action: "cookies", origin: window.location.origin }, function (response) {
+      RUNTIME.cookies = getNetscapeCookies(response.cookies)
+    });
     let url = window.location.href;
     RUNTIME.setStatus(CONSTANT.LOADING);
     const resp = await fetch(CONSTANT.BASE_URL + '/gw/api/v1/public/crawl?url=' + encodeURIComponent(url), {
@@ -111,6 +129,7 @@ async function grab() {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       url: window.location.href,
+      cookies: RUNTIME.cookies,
       html: RUNTIME.from === 'html' ? document.documentElement.innerHTML : undefined,
     })
   });
