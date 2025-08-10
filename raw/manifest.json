@@ -41,6 +41,6 @@
   "display": "standalone",
   "theme_color": "#000000",
   "manifest_version": 3,
-  "version": "0.1.4",
+  "version": "0.2.0",
   "background_color": "#ffffff"
 }

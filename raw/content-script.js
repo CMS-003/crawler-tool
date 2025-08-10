@@ -163,14 +163,7 @@ function main() {
     oContainer.appendChild(oStatus);
     document.body.appendChild(oContainer);
     dealClick = function () {
-      const moves = mouse ? mouse.moves : 1;
-      mouse = null;
-      if (moves > 1) {
-        return;
-      }
-      if (RUNTIME.status === CONSTANT.NOMATCH) {
-        window.open(CONSTANT.BASE_URL + '/manager', '_blank')
-      } else if (RUNTIME.status === CONSTANT.MATCHED) {
+      if (RUNTIME.status === CONSTANT.MATCHED) {
         RUNTIME.setStatus(CONSTANT.LOADING)
         grab().then(status => {
           status && RUNTIME.setStatus(status);
@@ -204,9 +197,12 @@ function main() {
     // 拖拽结束
     document.addEventListener('mouseup', function (event) {
       document.removeEventListener('mousemove', move)
-      xy.right = (window.document.documentElement.offsetWidth - event.clientX) - 16
-      xy.top = event.clientY - 16
-      localStorage.setItem('crawler_position', JSON.stringify(xy))
+      if (mouse) {
+        xy.right = (window.document.documentElement.offsetWidth - event.clientX) - 16
+        xy.top = event.clientY - 16
+        localStorage.setItem('crawler_position', JSON.stringify(xy))
+        mouse = null;
+      }
     });
   };
   document.addEventListener('keydown', e => {
