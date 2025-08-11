@@ -174,7 +174,6 @@ function main() {
         detect()
       }
     }
-    oContainer.addEventListener('click', dealClick);
     function move(event) {
       // 盒子的位置 = 鼠标与页面之间的距离 - 鼠标与盒子之间的距离
       oContainer.style.right = window.document.documentElement.offsetWidth - (event.clientX - mouse.x) - 32 + "px";
@@ -198,9 +197,13 @@ function main() {
     document.addEventListener('mouseup', function (event) {
       document.removeEventListener('mousemove', move)
       if (mouse) {
-        xy.right = (window.document.documentElement.offsetWidth - event.clientX) - 16
-        xy.top = event.clientY - 16
-        localStorage.setItem('crawler_position', JSON.stringify(xy))
+        if (mouse.moves === 0) {
+          dealClick();
+        } else {
+          xy.right = (window.document.documentElement.offsetWidth - event.clientX) - 16
+          xy.top = event.clientY - 16
+          localStorage.setItem('crawler_position', JSON.stringify(xy))
+        }
         mouse = null;
       }
     });
@@ -215,6 +218,7 @@ function main() {
   if (window.io) {
     const ws = window.io(CONSTANT.BASE_URL, {
       path: '/ws',
+      transports: ['websocket'],
       reconnectionAttempts: 3
     });
 

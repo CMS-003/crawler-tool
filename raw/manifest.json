@@ -28,7 +28,7 @@
         "https://*/*"
       ],
       "js": [
-        "socket.io.js",
+        "socket.io.min.js",
         "./content-script.js"
       ],
       "css": [
