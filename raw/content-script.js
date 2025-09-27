@@ -149,7 +149,6 @@ async function grab() {
       alert(body.message)
       return CONSTANT.ERRORED
     } else if (body.code === 0) {
-      RUNTIME.resource_id = body.data._id;
       return CONSTANT.SYNCING
     }
   }
@@ -254,9 +253,11 @@ function main() {
       console.log("连接超时-connect_timeout", data);
     });
     ws.on('message', data => {
-      console.log(data, 'ws')
+      console.log(data, RUNTIME.resource_id, 'ws')
       if (data.type && data.resource_id === RUNTIME.resource_id) {
-        events.emit(data.type, data);
+        setTimeout(() => {
+          events.emit(data.type, data);
+        }, 300)
       }
     });
   }
