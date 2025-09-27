@@ -65,6 +65,16 @@ const CONSTANT = {
 const RUNTIME = {
   status: CONSTANT.LOADING,
   setStatus(s) {
+    if (typeof s === 'number') {
+      switch (s) {
+        case 1: s = 'MATCHED'; break;
+        case 2: s = 'SYNCING'; break;
+        case 3: s = 'ERRORED'; break;
+        case 4: s = 'SUCCESS'; break;
+        case 5: s = 'SYNCING'; break;
+        default: break;
+      }
+    }
     if (s === RUNTIME.status || !CONSTANT.IMAGES[s]) {
       return;
     }
@@ -216,7 +226,7 @@ function main() {
 
   // websocket 通信
   if (window.io) {
-    const ws = window.io(CONSTANT.BASE_URL, {
+    const ws = window.io(CONSTANT.BASE_URL + '/ws', {
       path: '/ws',
       transports: ['websocket'],
       reconnectionAttempts: 3
@@ -326,7 +336,6 @@ events.on('resource_change', (e) => {
 })
 
 chrome.runtime.onMessage.addListener(async (message, sender, sendResponse) => {
-  console.log("收到消息：", message);
   const origin = window.location.origin;
   try {
     if (message.type === 'contextmenu') {
