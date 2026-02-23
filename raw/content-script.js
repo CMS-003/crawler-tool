@@ -1,3 +1,73 @@
+// Base64 字符表
+const base64Chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=';
+
+// UTF-8 字符串转 Uint8Array
+function utf8Encode(str) {
+  const encoder = new TextEncoder();
+  return encoder.encode(str);
+}
+
+// Uint8Array → 字符串
+function utf8Decode(bytes) {
+  const decoder = new TextDecoder();
+  return decoder.decode(bytes);
+}
+
+// Uint8Array → Base64
+function uint8ToBase64(bytes) {
+  let base64 = '';
+  let i;
+
+  for (i = 0; i < bytes.length; i += 3) {
+    const [b1, b2 = 0, b3 = 0] = [bytes[i], bytes[i + 1], bytes[i + 2]];
+
+    const triplet = (b1 << 16) | (b2 << 8) | b3;
+
+    base64 += base64Chars[(triplet >> 18) & 63];
+    base64 += base64Chars[(triplet >> 12) & 63];
+    base64 += (i + 1 < bytes.length) ? base64Chars[(triplet >> 6) & 63] : '=';
+    base64 += (i + 2 < bytes.length) ? base64Chars[triplet & 63] : '=';
+  }
+
+  return base64;
+}
+
+// Base64 → Uint8Array
+function base64ToUint8(base64) {
+  const len = base64.length;
+  let bufferLength = len * 3 / 4;
+
+  if (base64[len - 1] === '=') bufferLength--;
+  if (base64[len - 2] === '=') bufferLength--;
+
+  const bytes = new Uint8Array(bufferLength);
+  let byteIndex = 0;
+
+  for (let i = 0; i < len; i += 4) {
+    const a = base64Chars.indexOf(base64[i]);
+    const b = base64Chars.indexOf(base64[i + 1]);
+    const c = base64Chars.indexOf(base64[i + 2]);
+    const d = base64Chars.indexOf(base64[i + 3]);
+
+    const triplet = (a << 18) | (b << 12) | ((c & 63) << 6) | (d & 63);
+
+    if (c !== 64) bytes[byteIndex++] = (triplet >> 16) & 255;
+    if (d !== 64) bytes[byteIndex++] = (triplet >> 8) & 255;
+    if (d !== 64) bytes[byteIndex++] = triplet & 255;
+  }
+
+  return bytes;
+}
+
+// 公共函数：字符串 Base64 编码 / 解码
+function base64Encode(str) {
+  return uint8ToBase64(utf8Encode(str));
+}
+
+function base64Decode(base64) {
+  return utf8Decode(base64ToUint8(base64));
+}
+
 function createElement(tag, { style = {}, ...props }) {
   const element = document.createElement(tag);
   Object.keys(style).forEach(k => {
@@ -111,7 +181,7 @@ async function detect() {
     });
     let url = window.location.href;
     RUNTIME.setStatus(CONSTANT.LOADING);
-    const resp = await fetch(CONSTANT.BASE_URL + '/gw/api/v1/public/crawl?url=' + encodeURIComponent(url), {
+    const resp = await fetch(CONSTANT.BASE_URL + '/gw/download/crawl?url=' + encodeURIComponent(url), {
       method: "PATCH",
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ url })
@@ -136,6 +206,36 @@ async function detect() {
       // 已抓取未完成 initial loading transcoding
       RUNTIME.setStatus(CONSTANT.SYNCING)
     }
+    // if (window.location.href.includes('fix=1') && [2, 3, 4].includes(body.code)) {
+    //   if (RUNTIME.spider_id === 'jable_movie') {
+    //     const actors = [];
+    //     document.querySelectorAll('.models a.model').forEach(node => { let href = node.href; let name = node.querySelector('[data-original-title]'); actors.push({ _id: href.split('/')[4], name: name.getAttribute('data-original-title') }) })
+    //     fetch(CONSTANT.BASE_URL + '/gw/api/v1/public/resource/' + RUNTIME.resource_id, {
+    //       method: 'PUT',
+    //       headers: { 'Content-Type': 'application/json' },
+    //       body: JSON.stringify({
+    //         title: document.querySelector('h4').innerText,
+    //         tags: Array.from(document.querySelectorAll('.tags a')).map(node => node.innerText),
+    //         actors,
+    //       })
+    //     }).then(() => {
+    //       console.log('即将关闭')
+    //       window.close();
+    //     })
+    //   } else if (RUNTIME.spider_id === 'hanime1_video') {
+    //     const uid = document.querySelector('.video-playlist-top h4').textContent.trim();
+    //     fetch(CONSTANT.BASE_URL + '/gw/api/v1/public/resource/' + RUNTIME.resource_id, {
+    //       method: 'PUT',
+    //       headers: { 'Content-Type': 'application/json' },
+    //       body: JSON.stringify({
+    //         uid, uname: uid
+    //       })
+    //     }).then(() => {
+    //       console.log('即将关闭')
+    //       window.close();
+    //     })
+    //   }
+    // }
   } catch (e) {
     RUNTIME.setStatus(CONSTANT.ERRORED)
   }
@@ -148,7 +248,7 @@ async function grab() {
     body: JSON.stringify({
       url: window.location.href,
       cookies: RUNTIME.cookies,
-      html: RUNTIME.from === 'html' ? document.documentElement.innerHTML : undefined,
+      html: RUNTIME.from === 'html' ? base64Encode(document.documentElement.innerHTML) : undefined,
     })
   });
   if (resp.status !== 200) {
@@ -157,10 +257,10 @@ async function grab() {
     const body = await resp.json();
     if (body.code === -1) {
       alert(body.message)
-      // return CONSTANT.ERRORED
+      return CONSTANT.ERRORED
     } else if (body.code === 0) {
       events.emit('resource_change', { resource_id: RUNTIME.resource_id, resource_type: 'resource', status: CONSTANT.SYNCING })
-      // return CONSTANT.SYNCING
+      return CONSTANT.SYNCING
     }
   }
 }
@@ -196,7 +296,7 @@ function main() {
       if (RUNTIME.status === CONSTANT.MATCHED) {
         RUNTIME.setStatus(CONSTANT.LOADING)
         grab().then(status => {
-          // status && RUNTIME.setStatus(status);
+          status && RUNTIME.setStatus(status);
         }).catch(e => {
           RUNTIME.setStatus(CONSTANT.ERRORED)
         })
@@ -359,16 +459,16 @@ chrome.runtime.onMessage.addListener(async (message, sender, sendResponse) => {
   try {
     if (message.type === 'contextmenu') {
       switch (message.value) {
-        case 'clear_list':
+        case 'clear_host':
           await storage.remove('list')
           break;
-        case 'add_list':
+        case 'add_host':
           if (!white_list.includes(origin)) {
             white_list.push(origin)
           }
           await storage.set('list', white_list)
           break
-        case 'del_list':
+        case 'del_host':
           if (white_list.includes(origin)) {
             white_list = white_list.filter(name => name !== origin);
             await storage.set('list', white_list)
@@ -391,12 +491,13 @@ chrome.runtime.onMessage.addListener(async (message, sender, sendResponse) => {
 storage.get('list').then(list => {
   if (list instanceof Array) {
     white_list = list;
+    console.log(white_list)
     if (white_list.includes(window.location.origin)) {
       main();
       detect();
     }
   } else {
-    fetch(CONSTANT.BASE_URL + '/gw/api/v1/public/crawl/', {
+    fetch(CONSTANT.BASE_URL + '/gw/download/crawl/', {
       method: "GET",
       headers: { 'Content-Type': 'application/json' },
     }).then(async (resp) => {
