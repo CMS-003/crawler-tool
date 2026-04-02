@@ -267,7 +267,7 @@ async function detect() {
 }
 
 async function grab() {
-  const resp = await fetch(CONSTANT.BASE_URL + '/gw/api/v1/public/crawl/' + RUNTIME.spider_id, {
+  const resp = await fetch(CONSTANT.BASE_URL + '/gw/download/crawl/' + RUNTIME.spider_id, {
     method: "POST",
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
