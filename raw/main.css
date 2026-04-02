@@ -3,7 +3,6 @@
   right: 0;
   top: 0;
   z-index: 100003;
-  overflow: hidden;
 }
 
 .crawler-tool .drag-handler {
@@ -25,9 +24,47 @@
   padding: 0;
   margin: 0;
   cursor: pointer;
-  fill: #333;
+  /* fill: #333; */
+}
+
+.crawler-tool.spin {
+  transform-origin: 50% 50%;
+  animation: crawler-spin 1.5s linear infinite;
+}
+
+@keyframes crawler-spin {
+  from {
+    transform: rotate(0deg);
+  }
+
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .crawler-tool img:hover {
   cursor: pointer;
+}
+
+/* 子菜单 */
+.crawler-tool .menu-item {
+  position: absolute;
+  width: 32px;
+  height: 32px;
+  background: #ff5722;
+  border-radius: 50%;
+
+  bottom: 16px;
+  right: 16px;
+
+  transform: translate(0, 0) scale(0);
+  opacity: 0;
+
+  transition: all 0.3s ease;
+}
+
+/* 展开状态 */
+.crawler-tool.open .menu-item {
+  opacity: 1;
+  transform: scale(1);
 }
